@@ -10,7 +10,8 @@ create table sessions (
   session_date date primary key,
   status       text not null default 'open',
   note         text,
-  capacity     int
+  capacity     int,
+  courts       int
 );
 
 create table tournaments (

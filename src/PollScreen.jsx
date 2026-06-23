@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
 import { weekCandidateDays, splitConfirmedWaitlist, parseStartTime, hasStarted } from './lib/poll.js';
-import { WEEKDAYS, DEFAULT_CAPACITY, DEFAULT_TIME, DEFAULT_START, isAdmin } from './config.js';
+import { WEEKDAYS, DEFAULT_CAPACITY, DEFAULT_COURTS, DEFAULT_TIME, DEFAULT_START, isAdmin } from './config.js';
 import { useName } from './useName.js';
 import { initials, avatar } from './ui.js';
 
@@ -40,6 +40,45 @@ function Chip({ name }) {
       </span>
       {name}
     </span>
+  );
+}
+
+// Pannello organizzatore: capienza (→ lista d'attesa) e numero campi (→ torneo).
+function AdminBooking({ sess, onSave }) {
+  const [cap, setCap] = useState(String(sess?.capacity ?? DEFAULT_CAPACITY));
+  const [courts, setCourts] = useState(String(sess?.courts ?? DEFAULT_COURTS));
+  const [note, setNote] = useState(sess?.note ?? DEFAULT_TIME);
+  const booked = sess?.status === 'booked';
+  const field = 'mt-1 w-full px-3 py-2 rounded-lg border border-line bg-surface outline-none focus:border-coral text-base text-ink';
+
+  const save = () =>
+    onSave({
+      capacity: Math.max(1, Math.floor(Number(cap)) || DEFAULT_CAPACITY),
+      courts: Math.min(5, Math.max(1, Math.floor(Number(courts)) || DEFAULT_COURTS)),
+      note: note.trim() || DEFAULT_TIME,
+    });
+
+  return (
+    <details className="mt-3 border-t border-line pt-3">
+      <summary className="cursor-pointer text-sm font-semibold text-muted">⚙️ Gestione organizzatore</summary>
+      <div className="mt-3 grid grid-cols-2 gap-3">
+        <label className="text-xs font-semibold text-muted">
+          Capienza (posti)
+          <input type="number" inputMode="numeric" min="1" value={cap} onChange={(e) => setCap(e.target.value)} className={field} />
+        </label>
+        <label className="text-xs font-semibold text-muted">
+          Campi (1–5)
+          <input type="number" inputMode="numeric" min="1" max="5" value={courts} onChange={(e) => setCourts(e.target.value)} className={field} />
+        </label>
+        <label className="col-span-2 text-xs font-semibold text-muted">
+          Orario / campo
+          <input type="text" value={note} onChange={(e) => setNote(e.target.value)} className={field} />
+        </label>
+      </div>
+      <button className={`${btnPrimary} mt-3`} onClick={save}>
+        {booked ? 'Salva modifiche' : 'Prenota e salva'}
+      </button>
+    </details>
   );
 }
 
@@ -82,10 +121,8 @@ export default function PollScreen() {
     load();
   }
 
-  async function markBooked(date) {
-    const note = prompt('Nota (campo / ora):', sessions[date]?.note || DEFAULT_TIME);
-    if (note === null) return;
-    await supabase.from('sessions').upsert({ session_date: date, status: 'booked', note });
+  async function saveBooking(date, { capacity, courts, note }) {
+    await supabase.from('sessions').upsert({ session_date: date, status: 'booked', capacity, courts, note });
     load();
   }
 
@@ -236,11 +273,6 @@ export default function PollScreen() {
               <button className={isIn(date) ? btnIn : btnPrimary} onClick={() => toggle(date)}>
                 {isIn(date) ? '✓ Ci sei' : 'Ci sono'}
               </button>
-              {admin && (
-                <button className={btn} onClick={() => markBooked(date)}>
-                  {booked ? 'Modifica nota' : 'Prenota'}
-                </button>
-              )}
               {booked &&
                 (canStart ? (
                   <a className={btnGo} href={`?date=${date}&view=tournament${adminQS}`}>
@@ -252,6 +284,8 @@ export default function PollScreen() {
                   </span>
                 ))}
             </div>
+
+            {admin && <AdminBooking sess={sess} onSave={(v) => saveBooking(date, v)} />}
           </section>
         );
       })}

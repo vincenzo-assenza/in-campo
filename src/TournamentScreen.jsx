@@ -8,7 +8,7 @@ import {
   recordPairs,
 } from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
-import { DEFAULT_CAPACITY, MAX_SCORE, isAdmin } from './config.js';
+import { DEFAULT_CAPACITY, DEFAULT_COURTS, MAX_SCORE, isAdmin } from './config.js';
 
 const btnBase =
   'font-semibold text-sm px-4 py-3 rounded-xl border transition active:scale-95 hover:-translate-y-px disabled:opacity-50 disabled:pointer-events-none';
@@ -177,17 +177,19 @@ function ArchiveSection({ archive }) {
 export default function TournamentScreen({ date }) {
   const [state, setState] = useState(null); // { turno, courts }
   const [confirmed, setConfirmed] = useState([]);
-  const [courtsInput, setCourtsInput] = useState(3);
+  const [courtsInput, setCourtsInput] = useState(DEFAULT_COURTS);
   const admin = isAdmin();
   const adminParam = new URLSearchParams(window.location.search).get('admin');
 
   async function load() {
     const { data: su } = await supabase.from('signups').select('*').eq('session_date', date);
-    const { data: se } = await supabase.from('sessions').select('capacity').eq('session_date', date).maybeSingle();
+    const { data: se } = await supabase.from('sessions').select('capacity, courts').eq('session_date', date).maybeSingle();
     const cap = se?.capacity ?? DEFAULT_CAPACITY;
     setConfirmed(splitConfirmedWaitlist(su || [], cap).confirmed.map((s) => s.player_name));
     const { data: t } = await supabase.from('tournaments').select('state').eq('session_date', date).maybeSingle();
     setState(t?.state ?? null);
+    // Pre-compila i campi decisi dall'organizzatore in prenotazione (finché il torneo non è generato).
+    if (!t?.state && se?.courts) setCourtsInput(se.courts);
   }
 
   useEffect(() => {

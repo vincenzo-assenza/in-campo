@@ -13,5 +13,5 @@ insert into signups (session_date, player_name) values
   ('2026-06-27', 'Vince'), ('2026-06-27', 'Giulia'), ('2026-06-27', 'Chiara'),
   ('2026-06-27', 'Nico');
 
-insert into sessions (session_date, status, note) values
-  ('2026-06-23', 'booked', 'Campo 2 · 19:30–21:30');
+insert into sessions (session_date, status, note, capacity, courts) values
+  ('2026-06-23', 'booked', 'Campo 2 · 19:30–21:30', 12, 3);
