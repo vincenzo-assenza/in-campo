@@ -82,8 +82,11 @@ export function ladderNextRound(courts) {
     }
     const winner = court.winner === 'A' ? court.teamA : court.teamB;
     const loser = court.winner === 'A' ? court.teamB : court.teamA;
-    arrivals[Math.max(i - 1, 0)].push(winner); // sale di un campo
-    arrivals[Math.min(i + 1, K - 1)].push(loser); // scende di un campo
+    const up = Math.max(i - 1, 0); // vincente: sale di un campo (clamp in vetta)
+    const down = Math.min(i + 1, K - 1); // perdente: scende di un campo (clamp in fondo)
+    // Etichetta il movimento così la UI mostra chi è salito/sceso e da dove.
+    arrivals[up].push({ ...winner, move: up === i ? 'stay' : 'up', fromCourt: i });
+    arrivals[down].push({ ...loser, move: down === i ? 'stay' : 'down', fromCourt: i });
   });
 
   return arrivals.map((teams) => ({ teamA: teams[0], teamB: teams[1], winner: null }));

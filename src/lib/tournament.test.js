@@ -49,6 +49,24 @@ describe('ladderNextRound', () => {
     expect(next.every((c) => c.winner === null)).toBe(true);
   });
 
+  it('etichetta il movimento di ogni squadra (sale/scende/resta + campo di provenienza)', () => {
+    const courts = [
+      { teamA: team('W0'), teamB: team('L0'), winner: 'A' },
+      { teamA: team('W1'), teamB: team('L1'), winner: 'A' },
+      { teamA: team('W2'), teamB: team('L2'), winner: 'A' },
+    ];
+    const next = ladderNextRound(courts);
+    // Campo 0: vincente del campo 0 resta in vetta, vincente del campo 1 sale
+    expect(next[0].teamA.move).toBe('stay');
+    expect(next[0].teamB.move).toBe('up');
+    expect(next[0].teamB.fromCourt).toBe(1);
+    // Campo 2 (fondo): perdente del campo 2 resta in fondo
+    expect(next[2].teamB.move).toBe('stay');
+    // Perdente del campo 0 scende dal campo 0
+    expect(next[1].teamA.move).toBe('down');
+    expect(next[1].teamA.fromCourt).toBe(0);
+  });
+
   it('campo singolo: le stesse due squadre rigiocano', () => {
     const courts = [{ teamA: team('A'), teamB: team('B'), winner: 'B' }];
     const next = ladderNextRound(courts);

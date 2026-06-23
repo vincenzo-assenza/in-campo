@@ -19,6 +19,21 @@ function Stat({ n, k }) {
   );
 }
 
+function MoveBadge({ move, from }) {
+  const map = {
+    up: { t: `↑ sale dal Campo ${from + 1}`, c: 'text-win bg-winbg' },
+    down: { t: `↓ scende dal Campo ${from + 1}`, c: 'text-coral bg-coral/10' },
+    stay: { t: 'resta', c: 'text-muted bg-line/60' },
+  };
+  const m = map[move];
+  if (!m) return null;
+  return (
+    <span className={`inline-block text-[0.62rem] font-bold uppercase tracking-wide rounded-full px-2 py-0.5 mb-1 ${m.c}`}>
+      {m.t}
+    </span>
+  );
+}
+
 function TeamRow({ team, win, onWin, admin }) {
   return (
     <div
@@ -26,10 +41,13 @@ function TeamRow({ team, win, onWin, admin }) {
         win ? 'bg-winbg border-win/35' : 'border-line'
       }`}
     >
-      <div className={`flex flex-wrap gap-x-2 gap-y-1 font-semibold text-sm ${win ? 'text-winink' : ''}`}>
-        {team.players.map((p) => (
-          <span key={p}>{p}</span>
-        ))}
+      <div className="min-w-0">
+        {team.move && <MoveBadge move={team.move} from={team.fromCourt} />}
+        <div className={`flex flex-wrap gap-x-2 gap-y-1 font-semibold text-sm ${win ? 'text-winink' : ''}`}>
+          {team.players.map((p) => (
+            <span key={p}>{p}</span>
+          ))}
+        </div>
       </div>
       {admin && (
         <button
@@ -154,6 +172,9 @@ export default function TournamentScreen({ date }) {
             <span className="font-display text-xl">Turno {state.turno}</span>
             <span className="flex-1 h-px bg-line" />
           </div>
+          <p className="text-xs text-muted mx-1 mb-1">
+            Chi vince sale di un campo, chi perde scende. Le etichette sulle squadre mostrano i movimenti dall'ultimo round.
+          </p>
 
           {state.courts.map((c, i) => (
             <section
