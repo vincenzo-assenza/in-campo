@@ -109,61 +109,63 @@ function SlideSwap({ swapKey, children }) {
   );
 }
 
-function ResultLine({ r }) {
-  if (r.winner) {
-    return (
-      <li className="flex flex-wrap items-baseline gap-x-2">
-        <span className="text-muted text-xs uppercase tracking-wide">Campo {r.court + 1}</span>
-        <span className="text-win font-semibold">{r.winner.join(', ')}</span>
-        <span className="font-display tabular-nums text-sm">
-          {r.scoreWinner}–{r.scoreLoser}
-        </span>
-        <span className="text-ink/70">{r.loser.join(', ')}</span>
-      </li>
-    );
-  }
+// Una partita dell'archivio: mini-tabellone con vincente in evidenza sopra.
+function MatchResult({ r }) {
+  const decided = !!r.winner;
+  const top = decided ? r.winner : r.teamA;
+  const bottom = decided ? r.loser : r.teamB;
+  const sTop = decided ? r.scoreWinner : r.scoreA;
+  const sBottom = decided ? r.scoreLoser : r.scoreB;
   return (
-    <li className="flex flex-wrap items-baseline gap-x-2 text-muted">
-      <span className="text-xs uppercase tracking-wide">Campo {r.court + 1}</span>
-      <span>{r.teamA.join(', ')}</span>
-      <span className="font-display tabular-nums text-sm">
-        {r.scoreA ?? '–'}–{r.scoreB ?? '–'}
-      </span>
-      <span>{r.teamB.join(', ')}</span>
-      <span className="text-xs italic">(non conclusa)</span>
-    </li>
+    <div className="rounded-lg border border-line px-3 py-2">
+      <div className="text-[0.6rem] font-bold uppercase tracking-[0.12em] text-muted mb-1.5">
+        Campo {r.court + 1}
+        {!decided && ' · non conclusa'}
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        <span className={`text-sm ${decided ? 'font-semibold text-winink' : 'text-ink'}`}>{top.join(', ')}</span>
+        <span className={`font-display tabular-nums text-lg shrink-0 ${decided ? 'text-win' : 'text-muted'}`}>
+          {sTop ?? '–'}
+        </span>
+      </div>
+      <div className="flex items-center justify-between gap-3 mt-1">
+        <span className="text-sm text-muted">{bottom.join(', ')}</span>
+        <span className="font-display tabular-nums text-lg text-muted shrink-0">{sBottom ?? '–'}</span>
+      </div>
+    </div>
+  );
+}
+
+function RoundBlock({ label, results }) {
+  if (!results?.length) return null;
+  return (
+    <div>
+      <div className="text-[0.65rem] font-bold uppercase tracking-[0.14em] text-coral mb-2">{label}</div>
+      <div className="space-y-2">
+        {results.map((r) => (
+          <MatchResult key={r.court} r={r} />
+        ))}
+      </div>
+    </div>
   );
 }
 
 function ArchiveSection({ archive }) {
   return (
-    <section className="bg-surface border border-line rounded-2xl p-4 mt-4 shadow-[var(--shadow-card)]">
-      <h3 className="font-display text-base mb-2">Turni giocati</h3>
-      <div className="space-y-1.5">
+    <section className="bg-surface border border-line rounded-2xl p-5 mt-4 shadow-[var(--shadow-card)]">
+      <div className="flex items-baseline justify-between mb-1">
+        <h2 className="font-display text-xl">Turni giocati</h2>
+        <span className="text-xs text-muted">
+          {archive.length} {archive.length === 1 ? 'turno' : 'turni'}
+        </span>
+      </div>
+      <div className="divide-y divide-line">
         {[...archive].reverse().map((t) => (
-          <details key={t.turno} className="text-sm">
-            <summary className="cursor-pointer font-semibold py-1">Turno {t.turno}</summary>
-            <div className="mt-1 pl-1 space-y-2 pb-1">
-              {t.round1?.length > 0 && (
-                <div>
-                  <div className="text-[0.7rem] uppercase tracking-wide text-muted mb-1">Round 1</div>
-                  <ul className="space-y-1">
-                    {t.round1.map((r) => (
-                      <ResultLine key={r.court} r={r} />
-                    ))}
-                  </ul>
-                </div>
-              )}
-              {t.round2?.length > 0 && (
-                <div>
-                  <div className="text-[0.7rem] uppercase tracking-wide text-muted mb-1">Round 2</div>
-                  <ul className="space-y-1">
-                    {t.round2.map((r) => (
-                      <ResultLine key={r.court} r={r} />
-                    ))}
-                  </ul>
-                </div>
-              )}
+          <details key={t.turno} className="py-1">
+            <summary className="cursor-pointer py-2.5 font-display text-lg">Turno {t.turno}</summary>
+            <div className="pb-3 space-y-4">
+              <RoundBlock label="Round 1" results={t.round1} />
+              <RoundBlock label="Round 2" results={t.round2} />
             </div>
           </details>
         ))}
