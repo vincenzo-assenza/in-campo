@@ -35,9 +35,9 @@ describe('makeTeams', () => {
 describe('secondRound (vincenti vs vincenti, perdenti vs perdenti)', () => {
   const team = (id) => ({ id, players: [id] });
   const courts3 = () => [
-    { teamA: team('W0'), teamB: team('L0'), winner: 'A', scoreA: 25, scoreB: 18 },
-    { teamA: team('W1'), teamB: team('L1'), winner: 'A', scoreA: 25, scoreB: 20 },
-    { teamA: team('W2'), teamB: team('L2'), winner: 'A', scoreA: 25, scoreB: 22 },
+    { teamA: team('W0'), teamB: team('L0'), winner: 'A', scoreA: 21, scoreB: 18 },
+    { teamA: team('W1'), teamB: team('L1'), winner: 'A', scoreA: 21, scoreB: 19 },
+    { teamA: team('W2'), teamB: team('L2'), winner: 'A', scoreA: 21, scoreB: 17 },
   ];
 
   it('classifica 1v2,3v4,5v6 con 3 campi: V-V / V-P / P-P', () => {
@@ -74,7 +74,7 @@ describe('secondRound (vincenti vs vincenti, perdenti vs perdenti)', () => {
 
   it('roundOneResults riassume vincente, perdente e punteggio di ogni campo', () => {
     const res = roundOneResults(courts3());
-    expect(res[0]).toEqual({ court: 0, winner: ['W0'], loser: ['L0'], scoreWinner: 25, scoreLoser: 18 });
+    expect(res[0]).toEqual({ court: 0, winner: ['W0'], loser: ['L0'], scoreWinner: 21, scoreLoser: 18 });
     expect(res).toHaveLength(3);
   });
 });

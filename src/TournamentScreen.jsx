@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
 import { makeTeamsAvoidingRepeats, secondRound, roundOneResults, recordPairs } from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
-import { DEFAULT_CAPACITY, isAdmin } from './config.js';
+import { DEFAULT_CAPACITY, MAX_SCORE, isAdmin } from './config.js';
 
 const btnBase =
   'font-semibold text-sm px-4 py-3 rounded-xl border transition active:scale-95 hover:-translate-y-px disabled:opacity-50 disabled:pointer-events-none';
@@ -53,6 +53,7 @@ function TeamRow({ team, score, win, onScore, admin }) {
           type="number"
           inputMode="numeric"
           min="0"
+          max={MAX_SCORE}
           placeholder="–"
           value={score ?? ''}
           onChange={(e) => onScore(e.target.value)}
@@ -124,7 +125,7 @@ export default function TournamentScreen({ date }) {
 
   // Inserimento punteggio: il vincente del campo si deriva dal punteggio più alto.
   const setScore = (courtIdx, side, raw) => {
-    const value = raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0);
+    const value = raw === '' ? null : Math.min(MAX_SCORE, Math.max(0, Math.floor(Number(raw)) || 0));
     const courts = state.courts.map((c, i) => {
       if (i !== courtIdx) return c;
       const nc = { ...c, scoreA: side === 'A' ? value : c.scoreA, scoreB: side === 'B' ? value : c.scoreB };
@@ -163,7 +164,7 @@ export default function TournamentScreen({ date }) {
           <div className="flex gap-7 mt-4">
             <Stat n={confirmed.length} k="giocatori" />
             <Stat n={courtCount} k="campi" />
-            <Stat n={25} k="punti / set" />
+            <Stat n={MAX_SCORE} k="punti / set" />
           </div>
         </div>
       </header>

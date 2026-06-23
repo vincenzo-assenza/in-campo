@@ -1,6 +1,7 @@
 export const WEEKDAYS = [2, 4, 6]; // 0=Dom..6=Sab → mar/gio/sab
 export const DEFAULT_TIME = '19:30–21:30'; // orario abituale; l'admin può cambiarlo per data nella nota
 export const DEFAULT_CAPACITY = 12;
+export const MAX_SCORE = 21; // set a 21 punti
 export const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN;
 
 // ponytail: token in URL, barriera "tra amici", non un vero segreto
