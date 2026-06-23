@@ -21,6 +21,57 @@ export function makeTeams(players, courtCount, shuffle = defaultShuffle) {
   return courts;
 }
 
+// --- Anti-ripetizione compagni tra turni ---------------------------------
+// La "history" è una mappa "a|b" -> quante volte a e b sono stati compagni.
+
+export function pairKey(a, b) {
+  return a < b ? `${a}|${b}` : `${b}|${a}`;
+}
+
+// Tutte le coppie di compagni dentro i campi (chi sta nella stessa squadra).
+function courtPairs(courts) {
+  const pairs = [];
+  for (const c of courts) {
+    for (const team of [c.teamA, c.teamB]) {
+      const p = team.players;
+      for (let i = 0; i < p.length; i++) {
+        for (let j = i + 1; j < p.length; j++) pairs.push(pairKey(p[i], p[j]));
+      }
+    }
+  }
+  return pairs;
+}
+
+// Penalità di una formazione: somma di quante volte le sue coppie sono già state insieme.
+export function scoreRepeats(courts, history = {}) {
+  return courtPairs(courts).reduce((sum, k) => sum + (history[k] || 0), 0);
+}
+
+// Aggiorna la history contando le coppie di una formazione.
+export function recordPairs(history, courts) {
+  const next = { ...history };
+  for (const k of courtPairs(courts)) next[k] = (next[k] || 0) + 1;
+  return next;
+}
+
+// Genera la formazione che minimizza i compagni ripetuti: prova N estrazioni
+// casuali e tiene la migliore (Monte Carlo).
+// ponytail: best-of-N, ottimizzazione esatta solo se mai servisse davvero.
+export function makeTeamsAvoidingRepeats(players, courtCount, history = {}, attempts = 300, shuffle = defaultShuffle) {
+  let best = null;
+  let bestScore = Infinity;
+  for (let i = 0; i < attempts; i++) {
+    const courts = makeTeams(players, courtCount, shuffle);
+    const score = scoreRepeats(courts, history);
+    if (score < bestScore) {
+      best = courts;
+      bestScore = score;
+      if (score === 0) break; // nessuna coppia ripetuta: non si fa meglio
+    }
+  }
+  return best;
+}
+
 export function ladderNextRound(courts) {
   const K = courts.length;
   const arrivals = Array.from({ length: K }, () => []);

@@ -1,5 +1,12 @@
 import { describe, it, expect } from 'vitest';
-import { makeTeams, ladderNextRound } from './tournament.js';
+import {
+  makeTeams,
+  ladderNextRound,
+  pairKey,
+  scoreRepeats,
+  recordPairs,
+  makeTeamsAvoidingRepeats,
+} from './tournament.js';
 
 const identity = (a) => [...a]; // shuffle deterministico per i test
 
@@ -51,5 +58,45 @@ describe('ladderNextRound', () => {
   it('lancia errore se un campo non ha vincitore', () => {
     const courts = [{ teamA: team('A'), teamB: team('B'), winner: null }];
     expect(() => ladderNextRound(courts)).toThrow();
+  });
+});
+
+describe('anti-ripetizione compagni', () => {
+  const courtsOf = (...teams) => {
+    const out = [];
+    for (let i = 0; i < teams.length; i += 2) {
+      out.push({ teamA: { id: `t${i}`, players: teams[i] }, teamB: { id: `t${i + 1}`, players: teams[i + 1] }, winner: null });
+    }
+    return out;
+  };
+
+  it('pairKey è indipendente dall ordine', () => {
+    expect(pairKey('Anna', 'Bea')).toBe(pairKey('Bea', 'Anna'));
+  });
+
+  it('recordPairs conta le coppie di compagni (non tra avversari)', () => {
+    const courts = courtsOf(['Anna', 'Bea'], ['Cleo', 'Dino']);
+    const h = recordPairs({}, courts);
+    expect(h[pairKey('Anna', 'Bea')]).toBe(1);
+    expect(h[pairKey('Cleo', 'Dino')]).toBe(1);
+    // Anna e Cleo sono avversarie, non compagne → non registrate
+    expect(h[pairKey('Anna', 'Cleo')]).toBeUndefined();
+  });
+
+  it('scoreRepeats somma le penalità delle coppie già viste', () => {
+    const history = { [pairKey('Anna', 'Bea')]: 2 };
+    const courts = courtsOf(['Anna', 'Bea'], ['Cleo', 'Dino']);
+    expect(scoreRepeats(courts, history)).toBe(2);
+    expect(scoreRepeats(courtsOf(['Anna', 'Cleo'], ['Bea', 'Dino']), history)).toBe(0);
+  });
+
+  it('makeTeamsAvoidingRepeats evita i compagni già visti quando possibile', () => {
+    const players = ['p0', 'p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
+    // Primo turno: registra le coppie create.
+    const t1 = makeTeams(players, 2);
+    const history = recordPairs({}, t1);
+    // Secondo turno: con 8 giocatori e 2 campi una formazione senza ripetizioni esiste.
+    const t2 = makeTeamsAvoidingRepeats(players, 2, history, 500);
+    expect(scoreRepeats(t2, history)).toBe(0);
   });
 });

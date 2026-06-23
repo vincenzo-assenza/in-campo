@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
-import { makeTeams, ladderNextRound } from './lib/tournament.js';
+import { makeTeamsAvoidingRepeats, ladderNextRound, recordPairs } from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
 import { DEFAULT_CAPACITY, isAdmin } from './config.js';
 
@@ -82,9 +82,19 @@ export default function TournamentScreen({ date }) {
       .upsert({ session_date: date, state: next, updated_at: new Date().toISOString() });
   }
 
-  const generate = () => save({ turno: 1, courts: makeTeams(confirmed, Number(courtsInput)) });
-  const newTurno = () => save({ turno: (state.turno || 1) + 1, courts: makeTeams(confirmed, state.courts.length) });
-  const nextRound = () => save({ turno: state.turno, courts: ladderNextRound(state.courts) });
+  // Genera turno 1 (storico coppie da zero).
+  const generate = () => {
+    const courts = makeTeamsAvoidingRepeats(confirmed, Number(courtsInput));
+    save({ turno: 1, courts, history: recordPairs({}, courts) });
+  };
+  // Nuovo turno: rimescola evitando i compagni dei turni precedenti.
+  const newTurno = () => {
+    const history = state.history || {};
+    const courts = makeTeamsAvoidingRepeats(confirmed, state.courts.length, history);
+    save({ turno: (state.turno || 1) + 1, courts, history: recordPairs(history, courts) });
+  };
+  // La scala sposta le squadre tra i campi ma non cambia le coppie: lo storico resta.
+  const nextRound = () => save({ ...state, courts: ladderNextRound(state.courts) });
 
   const setWinner = (courtIdx, ab) => {
     const courts = state.courts.map((c, i) => (i === courtIdx ? { ...c, winner: ab } : c));
