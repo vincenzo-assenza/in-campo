@@ -62,6 +62,14 @@ function AdminBooking({ sess, onSave }) {
   const [courts, setCourts] = useState(String(sess?.courts ?? DEFAULT_COURTS));
   const [note, setNote] = useState(sess?.note ?? DEFAULT_TIME);
   const booked = sess?.status === 'booked';
+
+  // Allinea i campi quando i dati della sessione arrivano/cambiano (al primo render
+  // sess è ancora null → altrimenti il valore salvato resterebbe sovrascritto dal default).
+  useEffect(() => {
+    if (sess?.capacity != null) setCap(String(sess.capacity));
+    if (sess?.courts != null) setCourts(String(sess.courts));
+    if (sess?.note != null) setNote(sess.note);
+  }, [sess?.capacity, sess?.courts, sess?.note]);
   const field = 'mt-1 w-full px-3 py-2 rounded-lg border border-line bg-surface outline-none focus:border-coral text-base text-ink';
 
   const save = () =>
