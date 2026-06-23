@@ -3,6 +3,7 @@ import {
   makeTeams,
   secondRound,
   roundOneResults,
+  summarizeRound,
   pairKey,
   scoreRepeats,
   recordPairs,
@@ -76,6 +77,16 @@ describe('secondRound (vincenti vs vincenti, perdenti vs perdenti)', () => {
     const res = roundOneResults(courts3());
     expect(res[0]).toEqual({ court: 0, winner: ['W0'], loser: ['L0'], scoreWinner: 21, scoreLoser: 18 });
     expect(res).toHaveLength(3);
+  });
+
+  it('summarizeRound gestisce partite decise e non concluse', () => {
+    const courts = [
+      { teamA: team('W0'), teamB: team('L0'), winner: 'A', scoreA: 21, scoreB: 15 },
+      { teamA: team('X'), teamB: team('Y'), winner: null, scoreA: 10, scoreB: null },
+    ];
+    const res = summarizeRound(courts);
+    expect(res[0]).toEqual({ court: 0, winner: ['W0'], loser: ['L0'], scoreWinner: 21, scoreLoser: 15 });
+    expect(res[1]).toEqual({ court: 1, teamA: ['X'], teamB: ['Y'], scoreA: 10, scoreB: null });
   });
 });
 

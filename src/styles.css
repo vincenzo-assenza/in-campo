@@ -28,6 +28,7 @@
   body {
     font-family: var(--font-sans);
     color: var(--color-ink);
+    overflow-x: hidden; /* clip durante lo slide del nuovo turno */
     background:
       radial-gradient(1200px 500px at 110% -10%, rgba(255, 194, 51, 0.16), transparent 60%),
       radial-gradient(900px 500px at -10% 0%, rgba(255, 90, 54, 0.1), transparent 55%),
@@ -77,6 +78,16 @@
     transform: translateY(-2px) rotate(4deg);
   }
 }
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 
 @layer components {
   .hero-sunset {
@@ -103,6 +114,9 @@
   }
   .win-pop {
     animation: pop 0.3s ease;
+  }
+  .slide-in {
+    animation: slideInRight 0.38s cubic-bezier(0.2, 0.7, 0.2, 1) both;
   }
 }
 

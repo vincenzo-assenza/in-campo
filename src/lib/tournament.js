@@ -94,6 +94,23 @@ export function roundOneResults(courts) {
   });
 }
 
+// Riassume un round qualsiasi per l'archivio (tollera partite non concluse).
+export function summarizeRound(courts) {
+  return courts.map((c, i) => {
+    if (c.winner === 'A' || c.winner === 'B') {
+      const { winner, loser, scoreWinner, scoreLoser } = winnerLoser(c, i);
+      return { court: i, winner: winner.players, loser: loser.players, scoreWinner, scoreLoser };
+    }
+    return {
+      court: i,
+      teamA: c.teamA.players,
+      teamB: c.teamB.players,
+      scoreA: c.scoreA ?? null,
+      scoreB: c.scoreB ?? null,
+    };
+  });
+}
+
 // Round 2: i vincenti si sfidano tra loro, i perdenti tra loro.
 // Classifica 1v2,3v4,5v6: vincenti (in ordine di campo) sopra, perdenti sotto,
 // poi si accoppiano in fila. Con campi dispari il 3° vincente affronta il

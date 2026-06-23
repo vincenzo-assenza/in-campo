@@ -1,6 +1,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
-import { makeTeamsAvoidingRepeats, secondRound, roundOneResults, recordPairs } from './lib/tournament.js';
+import {
+  makeTeamsAvoidingRepeats,
+  secondRound,
+  roundOneResults,
+  summarizeRound,
+  recordPairs,
+} from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
 import { DEFAULT_CAPACITY, MAX_SCORE, isAdmin } from './config.js';
 
@@ -71,6 +77,69 @@ function TeamRow({ team, score, win, onScore, admin }) {
   );
 }
 
+function ResultLine({ r }) {
+  if (r.winner) {
+    return (
+      <li className="flex flex-wrap items-baseline gap-x-2">
+        <span className="text-muted text-xs uppercase tracking-wide">Campo {r.court + 1}</span>
+        <span className="text-win font-semibold">{r.winner.join(', ')}</span>
+        <span className="font-display tabular-nums text-sm">
+          {r.scoreWinner}–{r.scoreLoser}
+        </span>
+        <span className="text-ink/70">{r.loser.join(', ')}</span>
+      </li>
+    );
+  }
+  return (
+    <li className="flex flex-wrap items-baseline gap-x-2 text-muted">
+      <span className="text-xs uppercase tracking-wide">Campo {r.court + 1}</span>
+      <span>{r.teamA.join(', ')}</span>
+      <span className="font-display tabular-nums text-sm">
+        {r.scoreA ?? '–'}–{r.scoreB ?? '–'}
+      </span>
+      <span>{r.teamB.join(', ')}</span>
+      <span className="text-xs italic">(non conclusa)</span>
+    </li>
+  );
+}
+
+function ArchiveSection({ archive }) {
+  return (
+    <section className="bg-surface border border-line rounded-2xl p-4 mt-4 shadow-[var(--shadow-card)]">
+      <h3 className="font-display text-base mb-2">Turni giocati</h3>
+      <div className="space-y-1.5">
+        {[...archive].reverse().map((t) => (
+          <details key={t.turno} className="text-sm">
+            <summary className="cursor-pointer font-semibold py-1">Turno {t.turno}</summary>
+            <div className="mt-1 pl-1 space-y-2 pb-1">
+              {t.round1?.length > 0 && (
+                <div>
+                  <div className="text-[0.7rem] uppercase tracking-wide text-muted mb-1">Round 1</div>
+                  <ul className="space-y-1">
+                    {t.round1.map((r) => (
+                      <ResultLine key={r.court} r={r} />
+                    ))}
+                  </ul>
+                </div>
+              )}
+              {t.round2?.length > 0 && (
+                <div>
+                  <div className="text-[0.7rem] uppercase tracking-wide text-muted mb-1">Round 2</div>
+                  <ul className="space-y-1">
+                    {t.round2.map((r) => (
+                      <ResultLine key={r.court} r={r} />
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+}
+
 export default function TournamentScreen({ date }) {
   const [state, setState] = useState(null); // { turno, courts }
   const [confirmed, setConfirmed] = useState([]);
@@ -113,11 +182,24 @@ export default function TournamentScreen({ date }) {
     const courts = makeTeamsAvoidingRepeats(confirmed, Number(courtsInput));
     save({ turno: 1, round: 1, lastResults: null, courts, history: recordPairs({}, courts) });
   };
-  // Nuovo turno: rimescola evitando i compagni dei turni precedenti, riparte dal Round 1.
+  // Nuovo turno: archivia i risultati del turno appena finito, poi rimescola
+  // (evitando i compagni dei turni precedenti) e riparte dal Round 1.
   const newTurno = () => {
     const history = state.history || {};
+    const entry = {
+      turno: state.turno,
+      round1: round === 2 ? state.lastResults || [] : summarizeRound(state.courts),
+      round2: round === 2 ? summarizeRound(state.courts) : [],
+    };
     const courts = makeTeamsAvoidingRepeats(confirmed, state.courts.length, history);
-    save({ turno: (state.turno || 1) + 1, round: 1, lastResults: null, courts, history: recordPairs(history, courts) });
+    save({
+      turno: (state.turno || 1) + 1,
+      round: 1,
+      lastResults: null,
+      courts,
+      history: recordPairs(history, courts),
+      archive: [...(state.archive || []), entry],
+    });
   };
   // Round 2: i vincenti si sfidano tra loro, i perdenti tra loro. Le coppie non cambiano → storico invariato.
   const goToRound2 = () =>
@@ -193,6 +275,9 @@ export default function TournamentScreen({ date }) {
 
       {state && (
         <>
+          {state.archive?.length > 0 && <ArchiveSection archive={state.archive} />}
+
+          <div key={`${state.turno}-${round}`} className="slide-in">
           <div className="flex items-center gap-3 mt-6 mx-1">
             <span className="font-display text-xl">Turno {state.turno}</span>
             <span className="text-xs font-bold uppercase tracking-wider text-muted">Round {round}/2</span>
@@ -227,10 +312,9 @@ export default function TournamentScreen({ date }) {
             return (
               <section
                 key={i}
-                className={`anim-rise relative bg-surface rounded-2xl p-4 my-3 border shadow-[var(--shadow-card)] ${
+                className={`relative bg-surface rounded-2xl p-4 my-3 border shadow-[var(--shadow-card)] ${
                   isWinnersCourt ? 'border-sun/60 court-king' : 'border-line'
                 }`}
-                style={{ animationDelay: `${i * 0.06}s` }}
               >
                 {isWinnersCourt && (
                   <div
@@ -295,6 +379,7 @@ export default function TournamentScreen({ date }) {
               </button>
             </div>
           )}
+          </div>
         </>
       )}
     </main>
