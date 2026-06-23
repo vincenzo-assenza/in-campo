@@ -253,11 +253,14 @@ export default function TournamentScreen({ date }) {
     const courts = makeTeamsAvoidingRepeats(confirmed, Number(courtsInput));
     save({ turno: 1, round: 1, lastResults: null, courts, history: recordPairs({}, courts), historyBefore: {}, archive: [] });
   };
+  // Numero campi effettivo = ultima scelta dell'organizzatore in prenotazione.
+  const effectiveCourts = () => savedCourts ?? state.courts.length;
+
   // Rigenera: ri-estrae le squadre del SOLO turno corrente. Mantiene archivio,
   // numero di turno e storico precedente (usa historyBefore come baseline).
   const regenerate = () => {
     const before = state.historyBefore || {};
-    const courts = makeTeamsAvoidingRepeats(confirmed, state.courts.length, before);
+    const courts = makeTeamsAvoidingRepeats(confirmed, effectiveCourts(), before);
     save({
       turno: state.turno,
       round: 1,
@@ -277,7 +280,7 @@ export default function TournamentScreen({ date }) {
       round1: round === 2 ? state.lastResults || [] : summarizeRound(state.courts),
       round2: round === 2 ? summarizeRound(state.courts) : [],
     };
-    const courts = makeTeamsAvoidingRepeats(confirmed, state.courts.length, before);
+    const courts = makeTeamsAvoidingRepeats(confirmed, effectiveCourts(), before);
     save({
       turno: (state.turno || 1) + 1,
       round: 1,
@@ -382,6 +385,25 @@ export default function TournamentScreen({ date }) {
 
       {state && (
         <>
+          {savedCourts != null && savedCourts !== state.courts.length && (
+            <div className="mt-4 rounded-2xl border border-coral/40 bg-coral/5 p-4">
+              <p className="text-sm font-semibold">Campi aggiornati a {savedCourts}</p>
+              <p className="text-sm text-muted mt-0.5">
+                Le formazioni attuali sono su {state.courts.length} campi.
+              </p>
+              {admin && (
+                <button
+                  className={`${btnPrimary} mt-3`}
+                  onClick={() => {
+                    if (confirm(`Rigenerare le formazioni su ${savedCourts} campi? Il turno corrente verrà rifatto.`)) regenerate();
+                  }}
+                >
+                  Rigenera su {savedCourts} campi
+                </button>
+              )}
+            </div>
+          )}
+
           {state.archive?.length > 0 && <ArchiveSection archive={state.archive} />}
 
           <SlideSwap swapKey={`${state.turno}-${round}`}>
