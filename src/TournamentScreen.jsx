@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase.js';
 import {
   makeTeamsAvoidingRepeats,
@@ -73,6 +73,38 @@ function TeamRow({ team, score, win, onScore, admin }) {
           {score ?? '–'}
         </span>
       )}
+    </div>
+  );
+}
+
+// Transizione: alla variazione di swapKey la vista vecchia esce a sinistra
+// mentre la nuova entra da destra (doppio buffer, nessuna libreria).
+function SlideSwap({ swapKey, children }) {
+  const prevKey = useRef(swapKey);
+  const prevNode = useRef(children);
+  const [exiting, setExiting] = useState(null);
+
+  useEffect(() => {
+    if (prevKey.current !== swapKey) {
+      setExiting({ key: prevKey.current, node: prevNode.current });
+      const t = setTimeout(() => setExiting(null), 420);
+      prevKey.current = swapKey;
+      prevNode.current = children;
+      return () => clearTimeout(t);
+    }
+    prevNode.current = children; // stesso turno: aggiorna lo snapshot più recente
+  }, [swapKey, children]);
+
+  return (
+    <div className="relative">
+      {exiting && (
+        <div key={`exit-${exiting.key}`} className="slide-out absolute inset-x-0 top-0" aria-hidden="true">
+          {exiting.node}
+        </div>
+      )}
+      <div key={swapKey} className="slide-in">
+        {children}
+      </div>
     </div>
   );
 }
@@ -277,7 +309,7 @@ export default function TournamentScreen({ date }) {
         <>
           {state.archive?.length > 0 && <ArchiveSection archive={state.archive} />}
 
-          <div key={`${state.turno}-${round}`} className="slide-in">
+          <SlideSwap swapKey={`${state.turno}-${round}`}>
           <div className="flex items-center gap-3 mt-6 mx-1">
             <span className="font-display text-xl">Turno {state.turno}</span>
             <span className="text-xs font-bold uppercase tracking-wider text-muted">Round {round}/2</span>
@@ -379,7 +411,7 @@ export default function TournamentScreen({ date }) {
               </button>
             </div>
           )}
-          </div>
+          </SlideSwap>
         </>
       )}
     </main>
