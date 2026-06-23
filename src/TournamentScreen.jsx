@@ -40,13 +40,17 @@ function MoveBadge({ move, from }) {
   );
 }
 
-function PlayerChip({ name, win }) {
+const CHIP_TONES = {
+  plain: 'bg-ground text-ink', // su card bianca
+  onGreen: 'bg-white text-winink', // su squadra vincente (sfondo verde)
+  win: 'bg-winbg text-winink', // vincente su card bianca (archivio)
+};
+
+function PlayerChip({ name, tone = 'plain' }) {
   const a = avatar(name);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-sm font-medium ${
-        win ? 'bg-white text-winink' : 'bg-ground text-ink'
-      }`}
+      className={`inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-sm font-medium ${CHIP_TONES[tone]}`}
     >
       <span
         className="grid place-items-center w-5 h-5 rounded-full text-[0.6rem] font-extrabold"
@@ -70,7 +74,7 @@ function TeamRow({ team, score, win, onScore, admin }) {
         {team.move && <MoveBadge move={team.move} from={team.fromCourt} />}
         <div className="flex flex-wrap gap-1.5">
           {team.players.map((p) => (
-            <PlayerChip key={p} name={p} win={win} />
+            <PlayerChip key={p} name={p} tone={win ? 'onGreen' : 'plain'} />
           ))}
         </div>
       </div>
@@ -142,14 +146,22 @@ function MatchResult({ r }) {
         Campo {r.court + 1}
         {!decided && ' · non conclusa'}
       </div>
-      <div className="flex items-center justify-between gap-3">
-        <span className={`text-sm ${decided ? 'font-semibold text-winink' : 'text-ink'}`}>{top.join(', ')}</span>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex flex-wrap gap-1">
+          {top.map((p) => (
+            <PlayerChip key={p} name={p} tone={decided ? 'win' : 'plain'} />
+          ))}
+        </div>
         <span className={`font-display tabular-nums text-lg shrink-0 ${decided ? 'text-win' : 'text-muted'}`}>
           {sTop ?? '–'}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-3 mt-1">
-        <span className="text-sm text-muted">{bottom.join(', ')}</span>
+      <div className="flex items-start justify-between gap-3 mt-1.5">
+        <div className="flex flex-wrap gap-1">
+          {bottom.map((p) => (
+            <PlayerChip key={p} name={p} tone="plain" />
+          ))}
+        </div>
         <span className="font-display tabular-nums text-lg text-muted shrink-0">{sBottom ?? '–'}</span>
       </div>
     </div>
