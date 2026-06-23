@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
-import { makeTeamsAvoidingRepeats, ladderNextRound, recordPairs } from './lib/tournament.js';
+import { makeTeamsAvoidingRepeats, secondRound, roundOneResults, recordPairs } from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
 import { DEFAULT_CAPACITY, isAdmin } from './config.js';
 
@@ -21,9 +21,8 @@ function Stat({ n, k }) {
 
 function MoveBadge({ move, from }) {
   const map = {
-    up: { t: `↑ sale dal Campo ${from + 1}`, c: 'text-win bg-winbg' },
-    down: { t: `↓ scende dal Campo ${from + 1}`, c: 'text-coral bg-coral/10' },
-    stay: { t: 'resta', c: 'text-muted bg-line/60' },
+    won: { t: `↑ vincente · Campo ${from + 1}`, c: 'text-win bg-winbg' },
+    lost: { t: `↓ perdente · Campo ${from + 1}`, c: 'text-coral bg-coral/10' },
   };
   const m = map[move];
   if (!m) return null;
@@ -103,25 +102,34 @@ export default function TournamentScreen({ date }) {
   // Genera turno 1 (storico coppie da zero).
   const generate = () => {
     const courts = makeTeamsAvoidingRepeats(confirmed, Number(courtsInput));
-    save({ turno: 1, courts, history: recordPairs({}, courts) });
+    save({ turno: 1, round: 1, lastResults: null, courts, history: recordPairs({}, courts) });
   };
-  // Nuovo turno: rimescola evitando i compagni dei turni precedenti.
+  // Nuovo turno: rimescola evitando i compagni dei turni precedenti, riparte dal Round 1.
   const newTurno = () => {
     const history = state.history || {};
     const courts = makeTeamsAvoidingRepeats(confirmed, state.courts.length, history);
-    save({ turno: (state.turno || 1) + 1, courts, history: recordPairs(history, courts) });
+    save({ turno: (state.turno || 1) + 1, round: 1, lastResults: null, courts, history: recordPairs(history, courts) });
   };
-  // La scala sposta le squadre tra i campi ma non cambia le coppie: lo storico resta.
-  const nextRound = () => save({ ...state, courts: ladderNextRound(state.courts) });
+  // Round 2: i vincenti si sfidano tra loro, i perdenti tra loro. Le coppie non cambiano → storico invariato.
+  const goToRound2 = () =>
+    save({ ...state, round: 2, lastResults: roundOneResults(state.courts), courts: secondRound(state.courts) });
 
   const setWinner = (courtIdx, ab) => {
     const courts = state.courts.map((c, i) => (i === courtIdx ? { ...c, winner: ab } : c));
     save({ ...state, courts });
   };
 
+  const round = state?.round ?? 1;
   const allDecided = state?.courts.every((c) => c.winner === 'A' || c.winner === 'B');
   const courtCount = state ? state.courts.length : Number(courtsInput);
-  const tag = (i, last) => (i === 0 ? 'Top' : i === last ? 'Basso' : 'Centro');
+  // Nel Round 2 il campo è "Vincenti" / "Perdenti" / "Spareggio" in base alla provenienza delle squadre.
+  const courtTag = (c) => {
+    if (round !== 2) return null;
+    const m = [c.teamA.move, c.teamB.move];
+    if (m.every((x) => x === 'won')) return 'Vincenti';
+    if (m.every((x) => x === 'lost')) return 'Perdenti';
+    return 'Spareggio';
+  };
 
   return (
     <main className="max-w-[600px] mx-auto px-4 pb-16">
@@ -170,51 +178,78 @@ export default function TournamentScreen({ date }) {
         <>
           <div className="flex items-center gap-3 mt-6 mx-1">
             <span className="font-display text-xl">Turno {state.turno}</span>
+            <span className="text-xs font-bold uppercase tracking-wider text-muted">Round {round}/2</span>
             <span className="flex-1 h-px bg-line" />
           </div>
           <p className="text-xs text-muted mx-1 mb-1">
-            Chi vince sale di un campo, chi perde scende. Le etichette sulle squadre mostrano i movimenti dall'ultimo round.
+            {round === 1
+              ? 'Round 1: tutti giocano un set. Poi i vincenti si sfidano tra loro e i perdenti tra loro.'
+              : 'Round 2: vincenti contro vincenti, perdenti contro perdenti. Le etichette indicano da quale campo arriva ogni squadra.'}
           </p>
 
-          {state.courts.map((c, i) => (
-            <section
-              key={i}
-              className={`anim-rise relative bg-surface rounded-2xl p-4 my-3 border shadow-[var(--shadow-card)] ${
-                i === 0 ? 'border-sun/60 court-king' : 'border-line'
-              }`}
-              style={{ animationDelay: `${i * 0.06}s` }}
-            >
-              {i === 0 && (
-                <div
-                  className="absolute inset-x-0 top-0 h-1 rounded-t-2xl"
-                  style={{ background: 'linear-gradient(90deg, #FFC233, #FF5A36)' }}
-                />
-              )}
-              <div className="flex items-center justify-between mb-2.5">
-                <span className="font-display text-lg flex items-center gap-1.5">
-                  {i === 0 && <span className="crown">👑</span>} Campo {i + 1}
-                </span>
-                <span className="text-[0.68rem] font-bold uppercase tracking-wider text-muted">
-                  {tag(i, state.courts.length - 1)}
-                </span>
-              </div>
-              <TeamRow team={c.teamA} win={c.winner === 'A'} admin={admin} onWin={() => setWinner(i, 'A')} />
-              <div className="text-center font-extrabold text-[0.7rem] tracking-[0.1em] text-muted my-1.5 uppercase">
-                vs
-              </div>
-              <TeamRow team={c.teamB} win={c.winner === 'B'} admin={admin} onWin={() => setWinner(i, 'B')} />
+          {round === 2 && state.lastResults && (
+            <section className="anim-rise bg-surface border border-line rounded-2xl p-4 mt-3 shadow-[var(--shadow-card)]">
+              <h3 className="font-display text-base mb-2">Riepilogo Round 1</h3>
+              <ul className="space-y-1.5 text-sm">
+                {state.lastResults.map((r) => (
+                  <li key={r.court} className="flex flex-wrap items-baseline gap-x-2">
+                    <span className="text-muted text-xs uppercase tracking-wide">Campo {r.court + 1}</span>
+                    <span className="text-win font-semibold">{r.winner.join(', ')}</span>
+                    <span className="text-muted text-xs">batte</span>
+                    <span className="text-ink/70">{r.loser.join(', ')}</span>
+                  </li>
+                ))}
+              </ul>
             </section>
-          ))}
+          )}
+
+          {state.courts.map((c, i) => {
+            const isWinnersCourt = round === 2 && i === 0;
+            return (
+              <section
+                key={i}
+                className={`anim-rise relative bg-surface rounded-2xl p-4 my-3 border shadow-[var(--shadow-card)] ${
+                  isWinnersCourt ? 'border-sun/60 court-king' : 'border-line'
+                }`}
+                style={{ animationDelay: `${i * 0.06}s` }}
+              >
+                {isWinnersCourt && (
+                  <div
+                    className="absolute inset-x-0 top-0 h-1 rounded-t-2xl"
+                    style={{ background: 'linear-gradient(90deg, #FFC233, #FF5A36)' }}
+                  />
+                )}
+                <div className="flex items-center justify-between mb-2.5">
+                  <span className="font-display text-lg flex items-center gap-1.5">
+                    {isWinnersCourt && <span className="crown">👑</span>} Campo {i + 1}
+                  </span>
+                  {courtTag(c) && (
+                    <span className="text-[0.68rem] font-bold uppercase tracking-wider text-muted">{courtTag(c)}</span>
+                  )}
+                </div>
+                <TeamRow team={c.teamA} win={c.winner === 'A'} admin={admin} onWin={() => setWinner(i, 'A')} />
+                <div className="text-center font-extrabold text-[0.7rem] tracking-[0.1em] text-muted my-1.5 uppercase">
+                  vs
+                </div>
+                <TeamRow team={c.teamB} win={c.winner === 'B'} admin={admin} onWin={() => setWinner(i, 'B')} />
+              </section>
+            );
+          })}
 
           {admin && (
             <div className="flex flex-wrap gap-2.5 mt-4">
-              <button className={btnPrimary} disabled={!allDecided} onClick={nextRound}>
-                Prossimo round ↑
-              </button>
+              {round === 1 && (
+                <button className={btnPrimary} disabled={!allDecided} onClick={goToRound2}>
+                  Round 2 (vincenti vs vincenti) →
+                </button>
+              )}
+              {round === 2 && (
+                <span className="self-center text-sm font-semibold">Turno finito 🎉 — rimescola per il prossimo</span>
+              )}
               <button
                 className={btn}
                 onClick={() => {
-                  if (confirm('Rimescolare tutte le squadre?')) newTurno();
+                  if (confirm('Iniziare un nuovo turno? Le squadre vengono rimescolate.')) newTurno();
                 }}
               >
                 Nuovo turno
@@ -222,7 +257,7 @@ export default function TournamentScreen({ date }) {
               <button
                 className={btnGhost}
                 onClick={() => {
-                  if (confirm('Rigenerare il turno corrente?')) generate();
+                  if (confirm('Rigenerare le squadre del turno corrente?')) generate();
                 }}
               >
                 Rigenera

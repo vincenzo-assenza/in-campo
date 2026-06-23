@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import {
   makeTeams,
-  ladderNextRound,
+  secondRound,
+  roundOneResults,
   pairKey,
   scoreRepeats,
   recordPairs,
@@ -31,51 +32,50 @@ describe('makeTeams', () => {
   });
 });
 
-describe('ladderNextRound', () => {
+describe('secondRound (vincenti vs vincenti, perdenti vs perdenti)', () => {
   const team = (id) => ({ id, players: [id] });
+  const courts3 = () => [
+    { teamA: team('W0'), teamB: team('L0'), winner: 'A' },
+    { teamA: team('W1'), teamB: team('L1'), winner: 'A' },
+    { teamA: team('W2'), teamB: team('L2'), winner: 'A' },
+  ];
 
-  it('vincente sale, perdente scende, bordi restano (3 campi)', () => {
-    // court0: A vince; court1: A vince; court2: A vince
-    const courts = [
-      { teamA: team('W0'), teamB: team('L0'), winner: 'A' },
-      { teamA: team('W1'), teamB: team('L1'), winner: 'A' },
-      { teamA: team('W2'), teamB: team('L2'), winner: 'A' },
-    ];
-    const next = ladderNextRound(courts);
+  it('classifica 1v2,3v4,5v6 con 3 campi: V-V / V-P / P-P', () => {
+    const next = secondRound(courts3());
     const ids = (c) => [c.teamA.id, c.teamB.id];
-    expect(ids(next[0])).toEqual(['W0', 'W1']); // top: vincente che resta + vincente che sale
-    expect(ids(next[1])).toEqual(['L0', 'W2']);
-    expect(ids(next[2])).toEqual(['L1', 'L2']); // bottom: perdente che scende + perdente che resta
+    expect(ids(next[0])).toEqual(['W0', 'W1']); // due vincenti
+    expect(ids(next[1])).toEqual(['W2', 'L0']); // 3° vincente vs miglior perdente
+    expect(ids(next[2])).toEqual(['L1', 'L2']); // due perdenti
     expect(next.every((c) => c.winner === null)).toBe(true);
   });
 
-  it('etichetta il movimento di ogni squadra (sale/scende/resta + campo di provenienza)', () => {
+  it('campi pari: vincenti tutti insieme, perdenti tutti insieme (2 campi)', () => {
     const courts = [
       { teamA: team('W0'), teamB: team('L0'), winner: 'A' },
       { teamA: team('W1'), teamB: team('L1'), winner: 'A' },
-      { teamA: team('W2'), teamB: team('L2'), winner: 'A' },
     ];
-    const next = ladderNextRound(courts);
-    // Campo 0: vincente del campo 0 resta in vetta, vincente del campo 1 sale
-    expect(next[0].teamA.move).toBe('stay');
-    expect(next[0].teamB.move).toBe('up');
-    expect(next[0].teamB.fromCourt).toBe(1);
-    // Campo 2 (fondo): perdente del campo 2 resta in fondo
-    expect(next[2].teamB.move).toBe('stay');
-    // Perdente del campo 0 scende dal campo 0
-    expect(next[1].teamA.move).toBe('down');
-    expect(next[1].teamA.fromCourt).toBe(0);
+    const next = secondRound(courts);
+    expect([next[0].teamA.id, next[0].teamB.id]).toEqual(['W0', 'W1']); // vincenti
+    expect([next[1].teamA.id, next[1].teamB.id]).toEqual(['L0', 'L1']); // perdenti
   });
 
-  it('campo singolo: le stesse due squadre rigiocano', () => {
-    const courts = [{ teamA: team('A'), teamB: team('B'), winner: 'B' }];
-    const next = ladderNextRound(courts);
-    expect(new Set([next[0].teamA.id, next[0].teamB.id])).toEqual(new Set(['A', 'B']));
+  it('etichetta ogni squadra come vincente/perdente + campo di provenienza', () => {
+    const next = secondRound(courts3());
+    expect(next[0].teamA.move).toBe('won');
+    expect(next[0].teamA.fromCourt).toBe(0);
+    expect(next[2].teamB.move).toBe('lost');
+    expect(next[2].teamB.fromCourt).toBe(2);
   });
 
   it('lancia errore se un campo non ha vincitore', () => {
     const courts = [{ teamA: team('A'), teamB: team('B'), winner: null }];
-    expect(() => ladderNextRound(courts)).toThrow();
+    expect(() => secondRound(courts)).toThrow();
+  });
+
+  it('roundOneResults riassume vincente e perdente di ogni campo', () => {
+    const res = roundOneResults(courts3());
+    expect(res[0]).toEqual({ court: 0, winner: ['W0'], loser: ['L0'] });
+    expect(res).toHaveLength(3);
   });
 });
 

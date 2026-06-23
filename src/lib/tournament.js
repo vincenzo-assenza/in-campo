@@ -72,22 +72,40 @@ export function makeTeamsAvoidingRepeats(players, courtCount, history = {}, atte
   return best;
 }
 
-export function ladderNextRound(courts) {
-  const K = courts.length;
-  const arrivals = Array.from({ length: K }, () => []);
+// Helper: estrae vincente/perdente di un campo (lancia se il vincitore manca).
+function winnerLoser(court, i) {
+  if (court.winner !== 'A' && court.winner !== 'B') {
+    throw new Error(`Campo ${i} senza vincitore`);
+  }
+  const winner = court.winner === 'A' ? court.teamA : court.teamB;
+  const loser = court.winner === 'A' ? court.teamB : court.teamA;
+  return { winner, loser };
+}
 
-  courts.forEach((court, i) => {
-    if (court.winner !== 'A' && court.winner !== 'B') {
-      throw new Error(`Campo ${i} senza vincitore`);
-    }
-    const winner = court.winner === 'A' ? court.teamA : court.teamB;
-    const loser = court.winner === 'A' ? court.teamB : court.teamA;
-    const up = Math.max(i - 1, 0); // vincente: sale di un campo (clamp in vetta)
-    const down = Math.min(i + 1, K - 1); // perdente: scende di un campo (clamp in fondo)
-    // Etichetta il movimento così la UI mostra chi è salito/sceso e da dove.
-    arrivals[up].push({ ...winner, move: up === i ? 'stay' : 'up', fromCourt: i });
-    arrivals[down].push({ ...loser, move: down === i ? 'stay' : 'down', fromCourt: i });
+// Riepilogo del Round 1: per ogni campo chi ha vinto e chi ha perso (per la UI).
+export function roundOneResults(courts) {
+  return courts.map((c, i) => {
+    const { winner, loser } = winnerLoser(c, i);
+    return { court: i, winner: winner.players, loser: loser.players };
   });
+}
 
-  return arrivals.map((teams) => ({ teamA: teams[0], teamB: teams[1], winner: null }));
+// Round 2: i vincenti si sfidano tra loro, i perdenti tra loro.
+// Classifica 1v2,3v4,5v6: vincenti (in ordine di campo) sopra, perdenti sotto,
+// poi si accoppiano in fila. Con campi dispari il 3° vincente affronta il
+// miglior perdente, ecc. Le squadre restano integre (cambiano solo gli avversari).
+export function secondRound(courts) {
+  const winners = [];
+  const losers = [];
+  courts.forEach((c, i) => {
+    const { winner, loser } = winnerLoser(c, i);
+    winners.push({ ...winner, move: 'won', fromCourt: i });
+    losers.push({ ...loser, move: 'lost', fromCourt: i });
+  });
+  const seeds = [...winners, ...losers];
+  const out = [];
+  for (let i = 0; i < seeds.length; i += 2) {
+    out.push({ teamA: seeds[i], teamB: seeds[i + 1], winner: null });
+  }
+  return out;
 }

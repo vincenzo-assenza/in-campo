@@ -14,4 +14,4 @@ insert into signups (session_date, player_name) values
   ('2026-06-27', 'Nico');
 
 insert into sessions (session_date, status, note) values
-  ('2026-06-23', 'booked', 'Campo 2 · 19:00');
+  ('2026-06-23', 'booked', 'Campo 2 · 19:30–21:30');
