@@ -57,7 +57,7 @@ function Chip({ name, onRemove }) {
 }
 
 // Pannello organizzatore: capienza (→ lista d'attesa) e numero campi (→ torneo).
-function AdminBooking({ sess, onSave }) {
+function AdminBooking({ sess, onSave, onCancel }) {
   const [cap, setCap] = useState(String(sess?.capacity ?? DEFAULT_CAPACITY));
   const [courts, setCourts] = useState(String(sess?.courts ?? DEFAULT_COURTS));
   const [note, setNote] = useState(sess?.note ?? DEFAULT_TIME);
@@ -82,6 +82,10 @@ function AdminBooking({ sess, onSave }) {
   return (
     <details className="mt-3 border-t border-line pt-3">
       <summary className="cursor-pointer text-sm font-semibold text-muted">⚙️ Gestione organizzatore</summary>
+      <p className="text-sm mt-3">
+        Stato:{' '}
+        <b className={booked ? 'text-coral' : 'text-muted'}>{booked ? 'Prenotato ✅' : 'Non prenotato'}</b>
+      </p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <label className="text-xs font-semibold text-muted">
           Capienza (posti)
@@ -96,9 +100,19 @@ function AdminBooking({ sess, onSave }) {
           <input type="text" value={note} onChange={(e) => setNote(e.target.value)} className={field} />
         </label>
       </div>
-      <button className={`${btnPrimary} mt-3`} onClick={save}>
-        {booked ? 'Salva modifiche' : 'Prenota e salva'}
-      </button>
+      <div className="flex flex-wrap gap-2 mt-3">
+        <button className={btnPrimary} onClick={save}>
+          {booked ? 'Salva modifiche' : 'Prenota e salva'}
+        </button>
+        {booked && (
+          <button
+            className="font-semibold text-sm px-4 py-3 rounded-xl border border-line bg-surface text-coral transition active:scale-95 hover:-translate-y-px"
+            onClick={onCancel}
+          >
+            Annulla prenotazione
+          </button>
+        )}
+      </div>
     </details>
   );
 }
@@ -144,6 +158,13 @@ export default function PollScreen() {
 
   async function saveBooking(date, { capacity, courts, note }) {
     await supabase.from('sessions').upsert({ session_date: date, status: 'booked', capacity, courts, note });
+    load();
+  }
+
+  // Annulla la prenotazione (torna "non prenotato") mantenendo capienza/campi/nota.
+  async function cancelBooking(date) {
+    if (!confirm('Annullare la prenotazione di questo giorno?')) return;
+    await supabase.from('sessions').update({ status: 'open' }).eq('session_date', date);
     load();
   }
 
@@ -325,7 +346,9 @@ export default function PollScreen() {
                 ))}
             </div>
 
-            {admin && <AdminBooking sess={sess} onSave={(v) => saveBooking(date, v)} />}
+            {admin && (
+              <AdminBooking sess={sess} onSave={(v) => saveBooking(date, v)} onCancel={() => cancelBooking(date)} />
+            )}
           </section>
         );
       })}
