@@ -471,6 +471,8 @@ git commit -m "feat: supabase client and app config"
 ### Task 5: Schermata Sondaggio
 
 **Files:**
+- Create: `src/styles.css`
+- Modify: `src/main.jsx` (importa lo stylesheet)
 - Create: `src/useName.js`
 - Create: `src/PollScreen.jsx`
 
@@ -479,8 +481,80 @@ git commit -m "feat: supabase client and app config"
 - Produces:
   - `useName() => [name, setName]` — nome persistito in `localStorage` chiave `bv_name`.
   - `PollScreen` (default export) — render del sondaggio settimanale.
+  - `src/styles.css` — stile globale pulito, mobile-first, consumato da entrambe le schermate via le classi `card`, `muted`, `badge`, `btn-row`, `primary`, `team`, `team win`, `vs`.
 
-- [ ] **Step 1: Crea `src/useName.js`**
+**Stile (regole condivise):** UI pulita e minimale, una sola colonna centrata (max 560px, pensata per il telefono), niente librerie CSS. Le schermate usano `className`, mai `style` inline.
+
+- [ ] **Step 1: Crea `src/styles.css`**
+
+```css
+:root {
+  --bg: #f7f8fa;
+  --card: #ffffff;
+  --ink: #1a1a1a;
+  --muted: #6b7280;
+  --line: #e5e7eb;
+  --accent: #0a7d5a;
+  --accent-ink: #ffffff;
+  --win: #d1fae5;
+  --radius: 12px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  line-height: 1.5;
+}
+#root { max-width: 560px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.1rem; margin: 0 0 8px; }
+h3 { font-size: 1rem; margin: 0 0 8px; }
+a { color: var(--accent); }
+.muted { color: var(--muted); font-size: 0.9rem; }
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin: 12px 0;
+}
+button {
+  font: inherit;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--ink);
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+button:hover { border-color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 8px; }
+input {
+  font: inherit;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  max-width: 200px;
+}
+ol, ul { margin: 8px 0; padding-left: 20px; }
+.badge { font-size: 0.8rem; color: var(--accent); font-weight: 600; }
+.team { padding: 8px 10px; border-radius: 8px; }
+.team.win { background: var(--win); font-weight: 600; }
+.vs { text-align: center; color: var(--muted); margin: 4px 0; font-size: 0.85rem; }
+```
+
+- [ ] **Step 2: Importa lo stylesheet in `src/main.jsx`**
+
+Aggiungi questa riga in cima a `src/main.jsx`, sotto gli import esistenti:
+```jsx
+import './styles.css';
+```
+
+- [ ] **Step 3: Crea `src/useName.js`**
 
 ```js
 import { useState } from 'react';
@@ -496,7 +570,7 @@ export function useName() {
 }
 ```
 
-- [ ] **Step 2: Crea `src/PollScreen.jsx`**
+- [ ] **Step 4: Crea `src/PollScreen.jsx`** (stile via `className`, mai `style` inline)
 
 ```jsx
 import { useEffect, useState } from 'react';
@@ -558,11 +632,11 @@ export default function PollScreen() {
 
   if (!name) {
     return (
-      <form onSubmit={(e) => { e.preventDefault(); setName(nameInput); }}>
+      <form className="card" onSubmit={(e) => { e.preventDefault(); setName(nameInput); }}>
         <h1>Beach Volley 🏐</h1>
-        <p>Come ti chiami?</p>
+        <p className="muted">Come ti chiami?</p>
         <input value={nameInput} onChange={(e) => setNameInput(e.target.value)} autoFocus />
-        <button type="submit">Entra</button>
+        <div className="btn-row"><button className="primary" type="submit">Entra</button></div>
       </form>
     );
   }
@@ -570,29 +644,36 @@ export default function PollScreen() {
   return (
     <div>
       <h1>Beach Volley 🏐</h1>
-      <p>Ciao <b>{name}</b> · <button onClick={() => { localStorage.removeItem('bv_name'); location.reload(); }}>cambia nome</button></p>
-      {days.length === 0 && <p>Nessun giorno candidato questa settimana.</p>}
+      <p className="muted">
+        Ciao <b>{name}</b> ·{' '}
+        <a href="#" onClick={(e) => { e.preventDefault(); localStorage.removeItem('bv_name'); location.reload(); }}>cambia nome</a>
+      </p>
+      {days.length === 0 && <p className="muted">Nessun giorno candidato questa settimana.</p>}
       {days.map((date) => {
         const sess = sessions[date];
         const cap = sess?.capacity ?? DEFAULT_CAPACITY;
         const daySignups = signups.filter((s) => s.session_date === date);
         const { confirmed, waitlist } = splitConfirmedWaitlist(daySignups, cap);
         return (
-          <section key={date} style={{ border: '1px solid #ccc', margin: '8px 0', padding: 12 }}>
-            <h2>{fmt(date)} {sess?.status === 'booked' && <span>✅ prenotato</span>}</h2>
-            {sess?.note && <p><i>{sess.note}</i></p>}
-            <p>{confirmed.length}/{cap} confermati{waitlist.length > 0 && ` · ${waitlist.length} in attesa`}</p>
-            <button onClick={() => toggle(date)}>{isIn(date) ? '✓ Ci sono (togli)' : 'Ci sono'}</button>
+          <section className="card" key={date}>
+            <h2>{fmt(date)} {sess?.status === 'booked' && <span className="badge">✅ prenotato</span>}</h2>
+            {sess?.note && <p className="muted"><i>{sess.note}</i></p>}
+            <p className="muted">{confirmed.length}/{cap} confermati{waitlist.length > 0 && ` · ${waitlist.length} in attesa`}</p>
             <ol>{confirmed.map((s) => <li key={s.player_name}>{s.player_name}</li>)}</ol>
             {waitlist.length > 0 && (
               <details><summary>Lista d'attesa</summary>
                 <ol>{waitlist.map((s) => <li key={s.player_name}>{s.player_name}</li>)}</ol>
               </details>
             )}
-            {admin && <button onClick={() => markBooked(date)}>Marca prenotato + nota</button>}
-            {sess?.status === 'booked' && (
-              <a href={`?date=${date}&view=tournament${adminQS}`}> → Vai al torneo</a>
-            )}
+            <div className="btn-row">
+              <button className={isIn(date) ? '' : 'primary'} onClick={() => toggle(date)}>
+                {isIn(date) ? '✓ Ci sono (togli)' : 'Ci sono'}
+              </button>
+              {admin && <button onClick={() => markBooked(date)}>Marca prenotato + nota</button>}
+              {sess?.status === 'booked' && (
+                <a href={`?date=${date}&view=tournament${adminQS}`}>→ Vai al torneo</a>
+              )}
+            </div>
           </section>
         );
       })}
@@ -601,16 +682,16 @@ export default function PollScreen() {
 }
 ```
 
-- [ ] **Step 3: Verifica build**
+- [ ] **Step 5: Verifica build**
 
 Run: `npm run build`
 Expected: build ok.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add src/useName.js src/PollScreen.jsx
-git commit -m "feat: poll screen (signup toggle, confirmed/waitlist, admin booking)"
+git add src/styles.css src/main.jsx src/useName.js src/PollScreen.jsx
+git commit -m "feat: poll screen + clean global styles (signup toggle, confirmed/waitlist, admin booking)"
 ```
 
 ---
@@ -673,35 +754,38 @@ export default function TournamentScreen({ date }) {
   };
 
   const allDecided = state?.courts.every((c) => c.winner === 'A' || c.winner === 'B');
+  const adminParam = new URLSearchParams(location.search).get('admin');
 
   return (
     <div>
-      <p><a href={`?${new URLSearchParams(location.search).get('admin') ? 'admin=' + new URLSearchParams(location.search).get('admin') : ''}`}>← Sondaggio</a></p>
+      <p className="muted"><a href={`?${adminParam ? 'admin=' + adminParam : ''}`}>← Sondaggio</a></p>
       <h1>Torneo · {date}</h1>
-      <p>{confirmed.length} giocatori presenti</p>
+      <p className="muted">{confirmed.length} giocatori presenti</p>
 
       {!state && admin && (
-        <div>
-          <label>Campi prenotati: <input type="number" min="1" max="5" value={courtsInput} onChange={(e) => setCourtsInput(e.target.value)} /></label>
-          <button onClick={generate}>Genera formazioni</button>
-        </div>
+        <section className="card">
+          <label>Campi prenotati:{' '}
+            <input type="number" min="1" max="5" value={courtsInput} onChange={(e) => setCourtsInput(e.target.value)} />
+          </label>
+          <div className="btn-row"><button className="primary" onClick={generate}>Genera formazioni</button></div>
+        </section>
       )}
-      {!state && !admin && <p>In attesa che l'organizzatore generi le formazioni…</p>}
+      {!state && !admin && <p className="muted">In attesa che l'organizzatore generi le formazioni…</p>}
 
       {state && (
         <div>
           <h2>Turno {state.turno}</h2>
           {state.courts.map((c, i) => (
-            <section key={i} style={{ border: '1px solid #ccc', margin: '8px 0', padding: 12 }}>
+            <section className="card" key={i}>
               <h3>Campo {i + 1}{i === 0 ? ' 👑' : ''}</h3>
               <Team team={c.teamA} win={c.winner === 'A'} onWin={() => admin && setWinner(i, 'A')} admin={admin} />
-              <p>vs</p>
+              <p className="vs">vs</p>
               <Team team={c.teamB} win={c.winner === 'B'} onWin={() => admin && setWinner(i, 'B')} admin={admin} />
             </section>
           ))}
           {admin && (
-            <div>
-              <button disabled={!allDecided} onClick={nextRound}>Prossimo round (scala)</button>
+            <div className="btn-row">
+              <button className="primary" disabled={!allDecided} onClick={nextRound}>Prossimo round (scala)</button>
               <button onClick={() => { if (confirm('Rimescolare tutte le squadre?')) newTurno(); }}>Nuovo turno (rimescola)</button>
               <button onClick={() => { if (confirm('Rigenerare il turno corrente?')) generate(); }}>Rigenera</button>
             </div>
@@ -714,7 +798,7 @@ export default function TournamentScreen({ date }) {
 
 function Team({ team, win, onWin, admin }) {
   return (
-    <div style={{ background: win ? '#d4edda' : 'transparent', padding: 6 }}>
+    <div className={win ? 'team win' : 'team'}>
       <b>{team.players.join(', ')}</b>{' '}
       {admin && <button onClick={onWin}>{win ? '✓ vincente' : 'ha vinto'}</button>}
     </div>
