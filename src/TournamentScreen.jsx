@@ -211,27 +211,43 @@ export default function TournamentScreen({ date }) {
       .upsert({ session_date: date, state: next, updated_at: new Date().toISOString() });
   }
 
-  // Genera turno 1 (storico coppie da zero).
+  // Genera turno 1 da zero (nessun turno precedente, archivio vuoto).
   const generate = () => {
     const courts = makeTeamsAvoidingRepeats(confirmed, Number(courtsInput));
-    save({ turno: 1, round: 1, lastResults: null, courts, history: recordPairs({}, courts) });
+    save({ turno: 1, round: 1, lastResults: null, courts, history: recordPairs({}, courts), historyBefore: {}, archive: [] });
+  };
+  // Rigenera: ri-estrae le squadre del SOLO turno corrente. Mantiene archivio,
+  // numero di turno e storico precedente (usa historyBefore come baseline).
+  const regenerate = () => {
+    const before = state.historyBefore || {};
+    const courts = makeTeamsAvoidingRepeats(confirmed, state.courts.length, before);
+    save({
+      turno: state.turno,
+      round: 1,
+      lastResults: null,
+      courts,
+      history: recordPairs(before, courts),
+      historyBefore: before,
+      archive: state.archive || [],
+    });
   };
   // Nuovo turno: archivia i risultati del turno appena finito, poi rimescola
   // (evitando i compagni dei turni precedenti) e riparte dal Round 1.
   const newTurno = () => {
-    const history = state.history || {};
+    const before = state.history || {}; // baseline = tutte le coppie fin qui, incluso il turno concluso
     const entry = {
       turno: state.turno,
       round1: round === 2 ? state.lastResults || [] : summarizeRound(state.courts),
       round2: round === 2 ? summarizeRound(state.courts) : [],
     };
-    const courts = makeTeamsAvoidingRepeats(confirmed, state.courts.length, history);
+    const courts = makeTeamsAvoidingRepeats(confirmed, state.courts.length, before);
     save({
       turno: (state.turno || 1) + 1,
       round: 1,
       lastResults: null,
       courts,
-      history: recordPairs(history, courts),
+      history: recordPairs(before, courts),
+      historyBefore: before,
       archive: [...(state.archive || []), entry],
     });
   };
@@ -406,7 +422,7 @@ export default function TournamentScreen({ date }) {
               <button
                 className={btnGhost}
                 onClick={() => {
-                  if (confirm('Rigenerare le squadre del turno corrente?')) generate();
+                  if (confirm('Rigenerare le squadre del turno corrente? (i turni già giocati restano)')) regenerate();
                 }}
               >
                 Rigenera

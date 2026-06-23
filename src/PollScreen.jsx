@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
-import { weekCandidateDays, splitConfirmedWaitlist } from './lib/poll.js';
-import { WEEKDAYS, DEFAULT_CAPACITY, DEFAULT_TIME, isAdmin } from './config.js';
+import { weekCandidateDays, splitConfirmedWaitlist, parseStartTime, hasStarted } from './lib/poll.js';
+import { WEEKDAYS, DEFAULT_CAPACITY, DEFAULT_TIME, DEFAULT_START, isAdmin } from './config.js';
 import { useName } from './useName.js';
 import { initials, avatar } from './ui.js';
 
@@ -172,6 +172,9 @@ export default function PollScreen() {
         const chips = confirmed.slice(0, 5);
         const extra = confirmed.length - chips.length;
         const sub = booked && sess?.note ? sess.note : `${DEFAULT_TIME} · da prenotare`;
+        const startTime = parseStartTime(sess?.note, DEFAULT_START);
+        // L'organizzatore può entrare prima (per preparare le formazioni); i giocatori dall'orario di inizio.
+        const canStart = booked && (admin || hasStarted(date, startTime, new Date()));
 
         return (
           <section
@@ -238,11 +241,16 @@ export default function PollScreen() {
                   {booked ? 'Modifica nota' : 'Prenota'}
                 </button>
               )}
-              {booked && (
-                <a className={btnGo} href={`?date=${date}&view=tournament${adminQS}`}>
-                  Vai al torneo →
-                </a>
-              )}
+              {booked &&
+                (canStart ? (
+                  <a className={btnGo} href={`?date=${date}&view=tournament${adminQS}`}>
+                    Inizia Torneo →
+                  </a>
+                ) : (
+                  <span className={`${btnGo} opacity-50 pointer-events-none`} aria-disabled="true">
+                    Inizia alle {startTime}
+                  </span>
+                ))}
             </div>
           </section>
         );

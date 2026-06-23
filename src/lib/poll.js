@@ -19,6 +19,18 @@ export function weekCandidateDays(weekdays, today) {
   return out;
 }
 
+// Estrae il primo orario "HH:MM" dalla nota (es. "Campo 2 · 19:30–21:30" → "19:30").
+export function parseStartTime(note, fallback) {
+  const m = (note || '').match(/(\d{1,2}):(\d{2})/);
+  if (!m) return fallback;
+  return `${String(Math.min(23, Number(m[1]))).padStart(2, '0')}:${m[2]}`;
+}
+
+// True se l'orario di inizio (sessionDate + time, ora locale) è già passato.
+export function hasStarted(sessionDate, time, now) {
+  return now >= new Date(`${sessionDate}T${time}:00`);
+}
+
 export function splitConfirmedWaitlist(signups, capacity) {
   const sorted = [...signups].sort((a, b) =>
     a.created_at.localeCompare(b.created_at),
