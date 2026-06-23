@@ -3,11 +3,45 @@ import { supabase } from './supabase.js';
 import { weekCandidateDays, splitConfirmedWaitlist } from './lib/poll.js';
 import { WEEKDAYS, DEFAULT_CAPACITY, DEFAULT_TIME, isAdmin } from './config.js';
 import { useName } from './useName.js';
+import { initials, avatar } from './ui.js';
 
-const fmt = (iso) =>
-  new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', {
-    weekday: 'long', day: 'numeric', month: 'long',
-  });
+const btnBase =
+  'font-semibold text-sm px-4 py-3 rounded-xl border transition active:scale-95 hover:-translate-y-px disabled:opacity-50 disabled:pointer-events-none';
+const btn = `${btnBase} border-line bg-surface text-ink hover:shadow-[var(--shadow-card)]`;
+const btnPrimary = `${btnBase} border-coral bg-coral text-white shadow-[0_8px_18px_-8px_rgba(255,90,54,0.7)]`;
+const btnIn = `${btnBase} border-win/30 bg-winbg text-win`;
+const btnGo = `${btnBase} ml-auto border-ink bg-ink text-white no-underline`;
+
+const fmtDow = (iso) => {
+  const s = new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+const weekRange = () => {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  const mon = new Date(d);
+  mon.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  const sun = new Date(mon);
+  sun.setDate(mon.getDate() + 6);
+  const day = (x) => x.toLocaleDateString('it-IT', { day: 'numeric' });
+  return `${day(mon)}–${sun.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}`;
+};
+
+function Chip({ name }) {
+  const a = avatar(name);
+  return (
+    <span className="inline-flex items-center gap-1.5 bg-[#F1F7F5] border border-line rounded-full pl-1 pr-2.5 py-1 text-sm font-semibold">
+      <span
+        className="grid place-items-center w-5 h-5 rounded-full text-[0.66rem] font-extrabold"
+        style={{ background: a.bg, color: a.fg }}
+      >
+        {initials(name)}
+      </span>
+      {name}
+    </span>
+  );
+}
 
 export default function PollScreen() {
   const [name, setName] = useName();
@@ -16,7 +50,7 @@ export default function PollScreen() {
   const [sessions, setSessions] = useState({}); // session_date -> row
   const days = weekCandidateDays(WEEKDAYS, new Date());
   const admin = isAdmin();
-  const adminQS = admin ? `&admin=${new URLSearchParams(location.search).get('admin')}` : '';
+  const adminQS = admin ? `&admin=${new URLSearchParams(window.location.search).get('admin')}` : '';
 
   async function load() {
     const { data: su } = await supabase.from('signups').select('*').in('session_date', days);
@@ -55,53 +89,164 @@ export default function PollScreen() {
     load();
   }
 
+  function changeName() {
+    localStorage.removeItem('bv_name');
+    window.location.reload();
+  }
+
   if (!name) {
     return (
-      <form className="card" onSubmit={(e) => { e.preventDefault(); setName(nameInput); }}>
-        <h1>Beach Volley 🏐</h1>
-        <p className="muted">Come ti chiami?</p>
-        <input value={nameInput} onChange={(e) => setNameInput(e.target.value)} autoFocus />
-        <div className="btn-row"><button className="primary" type="submit">Entra</button></div>
-      </form>
+      <main className="max-w-[600px] mx-auto px-4 pb-16">
+        <form
+          className="anim-rise bg-surface border border-line rounded-3xl p-6 mt-8 shadow-[var(--shadow-card)]"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (nameInput.trim()) setName(nameInput);
+          }}
+        >
+          <h1 className="font-display text-4xl">Beach Volley 🏐</h1>
+          <p className="text-muted mt-1">Come ti chiami?</p>
+          <input
+            className="mt-3 w-full max-w-[260px] px-3 py-2.5 rounded-lg border border-line bg-surface outline-none focus:border-coral"
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
+            placeholder="Il tuo nome"
+            autoFocus
+          />
+          <div className="mt-4">
+            <button className={btnPrimary} type="submit">
+              Entra
+            </button>
+          </div>
+        </form>
+      </main>
     );
   }
 
   return (
-    <div>
-      <h1>Beach Volley 🏐</h1>
-      <p className="muted">
-        Ciao <b>{name}</b> ·{' '}
-        <a href="#" onClick={(e) => { e.preventDefault(); localStorage.removeItem('bv_name'); location.reload(); }}>cambia nome</a>
-      </p>
-      {days.length === 0 && <p className="muted">Nessun giorno candidato questa settimana.</p>}
-      {days.map((date) => {
+    <main className="max-w-[600px] mx-auto px-4 pb-16">
+      <header className="hero-sunset anim-rise relative overflow-hidden rounded-3xl px-6 pt-7 pb-8 mt-4 text-white shadow-[var(--shadow-lift)]">
+        <div
+          className="absolute -right-10 -top-12 w-44 h-44 rounded-full pointer-events-none"
+          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.5), transparent 65%)' }}
+        />
+        <div className="relative">
+          <div className="text-xs font-bold tracking-[0.16em] uppercase opacity-90">
+            {weekRange()} · la tua settimana
+          </div>
+          <h1 className="font-display text-5xl mt-2 leading-[0.95]">
+            Beach
+            <br />
+            Volley 🏐
+          </h1>
+          <p className="mt-2 text-[0.95rem] max-w-[32ch] opacity-95">
+            Segna quando puoi. Quando il campo si riempie, prenotiamo.
+          </p>
+          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur px-3 py-1.5 text-sm font-semibold">
+            <span className="grid place-items-center w-6 h-6 rounded-full bg-ink text-white text-[0.7rem] font-extrabold">
+              {initials(name)}
+            </span>
+            Ciao, {name} ·{' '}
+            <button className="underline opacity-90 text-xs font-medium" onClick={changeName}>
+              cambia
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="flex items-baseline justify-between mt-7 mx-1">
+        <span className="text-xs font-bold tracking-[0.14em] uppercase text-muted">Giorni candidati</span>
+        <span className="text-sm text-muted">{days.length} disponibili</span>
+      </div>
+
+      {days.length === 0 && <p className="text-muted mt-3 mx-1">Nessun giorno candidato questa settimana.</p>}
+
+      {days.map((date, idx) => {
         const sess = sessions[date];
+        const booked = sess?.status === 'booked';
         const cap = sess?.capacity ?? DEFAULT_CAPACITY;
         const daySignups = signups.filter((s) => s.session_date === date);
         const { confirmed, waitlist } = splitConfirmedWaitlist(daySignups, cap);
+        const fillPct = cap > 0 ? Math.min(100, Math.round((confirmed.length / cap) * 100)) : 0;
+        const free = Math.max(0, cap - confirmed.length);
+        const chips = confirmed.slice(0, 5);
+        const extra = confirmed.length - chips.length;
+        const sub = booked && sess?.note ? sess.note : `${DEFAULT_TIME} · da prenotare`;
+
         return (
-          <section className="card" key={date}>
-            <h2>{fmt(date)} {sess?.status === 'booked' && <span className="badge">✅ prenotato</span>}</h2>
-            {sess?.note && <p className="muted"><i>{sess.note}</i></p>}
-            <p className="muted">{confirmed.length}/{cap} confermati{waitlist.length > 0 && ` · ${waitlist.length} in attesa`}</p>
-            <ol>{confirmed.map((s) => <li key={s.player_name}>{s.player_name}</li>)}</ol>
+          <section
+            key={date}
+            className={`anim-rise bg-surface rounded-2xl p-[18px] my-3.5 shadow-[var(--shadow-card)] border ${
+              booked ? 'border-coral/35' : 'border-line'
+            }`}
+            style={{ animationDelay: `${idx * 0.06}s` }}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="font-display text-2xl">{fmtDow(date)}</div>
+                <div className="text-sm text-muted mt-0.5">{sub}</div>
+              </div>
+              {booked && (
+                <span className="shrink-0 text-[0.68rem] font-extrabold tracking-wider uppercase text-white bg-coral px-2.5 py-1.5 rounded-full shadow-[0_4px_10px_-4px_rgba(255,90,54,0.6)]">
+                  Prenotato
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3.5">
+              <div className="flex justify-between text-sm mb-1.5">
+                <span>
+                  <b className="font-extrabold">{confirmed.length}</b>/{cap} confermati
+                </span>
+                {waitlist.length > 0 ? (
+                  <span className="text-coral font-bold">+{waitlist.length} in attesa</span>
+                ) : (
+                  <span className="text-muted">{free} posti liberi</span>
+                )}
+              </div>
+              <div className="h-2.5 rounded-full bg-line overflow-hidden">
+                <div className="h-full rounded-full fill-bar" style={{ width: `${fillPct}%` }} />
+              </div>
+            </div>
+
+            {chips.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {chips.map((s) => (
+                  <Chip key={s.player_name} name={s.player_name} />
+                ))}
+                {extra > 0 && (
+                  <span className="inline-flex items-center border border-dashed border-line text-muted rounded-full px-2.5 py-1 text-sm font-semibold">
+                    +{extra}
+                  </span>
+                )}
+              </div>
+            )}
+
             {waitlist.length > 0 && (
-              <details><summary>Lista d'attesa</summary>
-                <ol>{waitlist.map((s) => <li key={s.player_name}>{s.player_name}</li>)}</ol>
+              <details className="text-sm text-muted mt-2">
+                <summary className="cursor-pointer">Lista d'attesa ({waitlist.length})</summary>
+                <div className="mt-1">{waitlist.map((s) => s.player_name).join(', ')}</div>
               </details>
             )}
-            <div className="btn-row">
-              <button className={isIn(date) ? '' : 'primary'} onClick={() => toggle(date)}>
-                {isIn(date) ? '✓ Ci sono (togli)' : 'Ci sono'}
+
+            <div className="flex flex-wrap gap-2.5 items-center mt-4">
+              <button className={isIn(date) ? btnIn : btnPrimary} onClick={() => toggle(date)}>
+                {isIn(date) ? '✓ Ci sei' : 'Ci sono'}
               </button>
-              {admin && <button onClick={() => markBooked(date)}>Marca prenotato + nota</button>}
-              {sess?.status === 'booked' && (
-                <a href={`?date=${date}&view=tournament${adminQS}`}>→ Vai al torneo</a>
+              {admin && (
+                <button className={btn} onClick={() => markBooked(date)}>
+                  {booked ? 'Modifica nota' : 'Prenota'}
+                </button>
+              )}
+              {booked && (
+                <a className={btnGo} href={`?date=${date}&view=tournament${adminQS}`}>
+                  Vai al torneo →
+                </a>
               )}
             </div>
           </section>
         );
       })}
-    </div>
+    </main>
   );
 }

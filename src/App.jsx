@@ -1,3 +1,11 @@
+import PollScreen from './PollScreen.jsx';
+import TournamentScreen from './TournamentScreen.jsx';
+
 export default function App() {
-  return <h1>Beach Volley</h1>;
+  const qs = new URLSearchParams(window.location.search);
+  const date = qs.get('date');
+  if (qs.get('view') === 'tournament' && date) {
+    return <TournamentScreen date={date} />;
+  }
+  return <PollScreen />;
 }
