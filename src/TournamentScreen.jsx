@@ -9,6 +9,7 @@ import {
 } from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
 import { DEFAULT_CAPACITY, DEFAULT_COURTS, MAX_SCORE, isAdmin } from './config.js';
+import { initials, avatar } from './ui.js';
 
 const btnBase =
   'font-semibold text-sm px-4 py-3 rounded-xl border transition active:scale-95 hover:-translate-y-px disabled:opacity-50 disabled:pointer-events-none';
@@ -39,6 +40,25 @@ function MoveBadge({ move, from }) {
   );
 }
 
+function PlayerChip({ name, win }) {
+  const a = avatar(name);
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-sm font-medium ${
+        win ? 'bg-white text-winink' : 'bg-ground text-ink'
+      }`}
+    >
+      <span
+        className="grid place-items-center w-5 h-5 rounded-full text-[0.6rem] font-extrabold"
+        style={{ background: a.bg, color: a.fg }}
+      >
+        {initials(name)}
+      </span>
+      {name}
+    </span>
+  );
+}
+
 function TeamRow({ team, score, win, onScore, admin }) {
   return (
     <div
@@ -48,9 +68,9 @@ function TeamRow({ team, score, win, onScore, admin }) {
     >
       <div className="min-w-0">
         {team.move && <MoveBadge move={team.move} from={team.fromCourt} />}
-        <div className={`flex flex-wrap gap-x-2 gap-y-1 font-semibold text-sm ${win ? 'text-winink' : ''}`}>
+        <div className="flex flex-wrap gap-1.5">
           {team.players.map((p) => (
-            <span key={p}>{p}</span>
+            <PlayerChip key={p} name={p} win={win} />
           ))}
         </div>
       </div>
