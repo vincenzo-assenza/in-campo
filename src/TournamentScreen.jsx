@@ -54,10 +54,10 @@ export default function TournamentScreen({ date }) {
 
   async function load() {
     const { data: su } = await supabase.from('signups').select('*').eq('session_date', date);
-    const { data: se } = await supabase.from('sessions').select('capacity').eq('session_date', date).single();
+    const { data: se } = await supabase.from('sessions').select('capacity').eq('session_date', date).maybeSingle();
     const cap = se?.capacity ?? DEFAULT_CAPACITY;
     setConfirmed(splitConfirmedWaitlist(su || [], cap).confirmed.map((s) => s.player_name));
-    const { data: t } = await supabase.from('tournaments').select('state').eq('session_date', date).single();
+    const { data: t } = await supabase.from('tournaments').select('state').eq('session_date', date).maybeSingle();
     setState(t?.state ?? null);
   }
 
