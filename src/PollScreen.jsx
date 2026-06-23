@@ -28,10 +28,14 @@ const weekRange = () => {
   return `${day(mon)}–${sun.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}`;
 };
 
-function Chip({ name }) {
+function Chip({ name, onRemove }) {
   const a = avatar(name);
   return (
-    <span className="inline-flex items-center gap-1.5 bg-[#F1F7F5] border border-line rounded-full pl-1 pr-2.5 py-1 text-sm font-semibold">
+    <span
+      className={`inline-flex items-center gap-1.5 bg-[#F1F7F5] border border-line rounded-full pl-1 py-1 text-sm font-semibold ${
+        onRemove ? 'pr-1' : 'pr-2.5'
+      }`}
+    >
       <span
         className="grid place-items-center w-5 h-5 rounded-full text-[0.66rem] font-extrabold"
         style={{ background: a.bg, color: a.fg }}
@@ -39,6 +43,15 @@ function Chip({ name }) {
         {initials(name)}
       </span>
       {name}
+      {onRemove && (
+        <button
+          onClick={onRemove}
+          aria-label={`Rimuovi ${name}`}
+          className="grid place-items-center w-5 h-5 rounded-full text-muted hover:text-coral hover:bg-coral/10"
+        >
+          ×
+        </button>
+      )}
     </span>
   );
 }
@@ -123,6 +136,13 @@ export default function PollScreen() {
 
   async function saveBooking(date, { capacity, courts, note }) {
     await supabase.from('sessions').upsert({ session_date: date, status: 'booked', capacity, courts, note });
+    load();
+  }
+
+  // Admin: rimuove un iscritto qualsiasi (ritiro last-minute). Toglie un confermato → sale il primo in attesa.
+  async function removePlayer(date, playerName) {
+    if (!confirm(`Rimuovere ${playerName}?`)) return;
+    await supabase.from('signups').delete().match({ session_date: date, player_name: playerName });
     load();
   }
 
@@ -249,12 +269,16 @@ export default function PollScreen() {
               </div>
             </div>
 
-            {chips.length > 0 && (
+            {confirmed.length > 0 && (
               <div className="flex flex-wrap gap-1.5 mt-3">
-                {chips.map((s) => (
-                  <Chip key={s.player_name} name={s.player_name} />
+                {(admin ? confirmed : chips).map((s) => (
+                  <Chip
+                    key={s.player_name}
+                    name={s.player_name}
+                    onRemove={admin ? () => removePlayer(date, s.player_name) : undefined}
+                  />
                 ))}
-                {extra > 0 && (
+                {!admin && extra > 0 && (
                   <span className="inline-flex items-center border border-dashed border-line text-muted rounded-full px-2.5 py-1 text-sm font-semibold">
                     +{extra}
                   </span>
@@ -265,7 +289,15 @@ export default function PollScreen() {
             {waitlist.length > 0 && (
               <details className="text-sm text-muted mt-2">
                 <summary className="cursor-pointer">Lista d'attesa ({waitlist.length})</summary>
-                <div className="mt-1">{waitlist.map((s) => s.player_name).join(', ')}</div>
+                {admin ? (
+                  <div className="flex flex-wrap gap-1.5 mt-2">
+                    {waitlist.map((s) => (
+                      <Chip key={s.player_name} name={s.player_name} onRemove={() => removePlayer(date, s.player_name)} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="mt-1">{waitlist.map((s) => s.player_name).join(', ')}</div>
+                )}
               </details>
             )}
 

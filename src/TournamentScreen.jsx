@@ -210,6 +210,8 @@ export default function TournamentScreen({ date }) {
   const [state, setState] = useState(null); // { turno, courts }
   const [confirmed, setConfirmed] = useState([]);
   const [courtsInput, setCourtsInput] = useState(DEFAULT_COURTS);
+  const [savedCourts, setSavedCourts] = useState(null); // campi decisi in prenotazione
+  const [editCourts, setEditCourts] = useState(false);
   const admin = isAdmin();
   const adminParam = new URLSearchParams(window.location.search).get('admin');
 
@@ -220,7 +222,8 @@ export default function TournamentScreen({ date }) {
     setConfirmed(splitConfirmedWaitlist(su || [], cap).confirmed.map((s) => s.player_name));
     const { data: t } = await supabase.from('tournaments').select('state').eq('session_date', date).maybeSingle();
     setState(t?.state ?? null);
-    // Pre-compila i campi decisi dall'organizzatore in prenotazione (finché il torneo non è generato).
+    // Campi decisi dall'organizzatore in prenotazione (finché il torneo non è generato).
+    setSavedCourts(se?.courts ?? null);
     if (!t?.state && se?.courts) setCourtsInput(se.courts);
   }
 
@@ -337,15 +340,35 @@ export default function TournamentScreen({ date }) {
 
       {!state && admin && (
         <section className="anim-rise bg-surface border border-line rounded-2xl p-5 mt-5 shadow-[var(--shadow-card)]">
-          <label className="block text-sm font-semibold mb-2">Campi prenotati</label>
-          <input
-            type="number"
-            min="1"
-            max="5"
-            value={courtsInput}
-            onChange={(e) => setCourtsInput(e.target.value)}
-            className="w-24 px-3 py-2.5 rounded-lg border border-line bg-surface outline-none focus:border-coral"
-          />
+          {savedCourts != null && !editCourts ? (
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-sm text-muted">Campi prenotati</div>
+                <div className="font-display text-3xl leading-none mt-0.5">{savedCourts}</div>
+              </div>
+              <button
+                className="text-coral text-sm font-semibold"
+                onClick={() => {
+                  setCourtsInput(savedCourts);
+                  setEditCourts(true);
+                }}
+              >
+                cambia
+              </button>
+            </div>
+          ) : (
+            <>
+              <label className="block text-sm font-semibold mb-2">Campi prenotati</label>
+              <input
+                type="number"
+                min="1"
+                max="5"
+                value={courtsInput}
+                onChange={(e) => setCourtsInput(e.target.value)}
+                className="w-24 px-3 py-2.5 rounded-lg border border-line bg-surface outline-none focus:border-coral"
+              />
+            </>
+          )}
           <div className="mt-4">
             <button className={btnPrimary} onClick={generate}>
               Genera formazioni
