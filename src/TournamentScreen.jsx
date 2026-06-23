@@ -33,7 +33,7 @@ function MoveBadge({ move, from }) {
   );
 }
 
-function TeamRow({ team, win, onWin, admin }) {
+function TeamRow({ team, score, win, onScore, admin }) {
   return (
     <div
       className={`flex items-center justify-between gap-2.5 rounded-xl border p-2.5 transition ${
@@ -48,15 +48,23 @@ function TeamRow({ team, win, onWin, admin }) {
           ))}
         </div>
       </div>
-      {admin && (
-        <button
-          onClick={onWin}
-          className={`shrink-0 text-[0.78rem] font-bold px-3 py-2 rounded-full border transition ${
-            win ? 'bg-win text-white border-win win-pop' : 'bg-surface text-muted border-line'
+      {admin ? (
+        <input
+          type="number"
+          inputMode="numeric"
+          min="0"
+          placeholder="–"
+          value={score ?? ''}
+          onChange={(e) => onScore(e.target.value)}
+          aria-label="Punteggio"
+          className={`shrink-0 w-14 text-center font-display text-xl tabular-nums px-1 py-1.5 rounded-lg border outline-none focus:border-coral ${
+            win ? 'border-win bg-winbg text-winink' : 'border-line bg-surface'
           }`}
-        >
-          {win ? '✓ Vince' : 'ha vinto'}
-        </button>
+        />
+      ) : (
+        <span className={`shrink-0 font-display text-2xl tabular-nums ${win ? 'text-win' : 'text-muted'}`}>
+          {score ?? '–'}
+        </span>
       )}
     </div>
   );
@@ -114,8 +122,16 @@ export default function TournamentScreen({ date }) {
   const goToRound2 = () =>
     save({ ...state, round: 2, lastResults: roundOneResults(state.courts), courts: secondRound(state.courts) });
 
-  const setWinner = (courtIdx, ab) => {
-    const courts = state.courts.map((c, i) => (i === courtIdx ? { ...c, winner: ab } : c));
+  // Inserimento punteggio: il vincente del campo si deriva dal punteggio più alto.
+  const setScore = (courtIdx, side, raw) => {
+    const value = raw === '' ? null : Math.max(0, Math.floor(Number(raw)) || 0);
+    const courts = state.courts.map((c, i) => {
+      if (i !== courtIdx) return c;
+      const nc = { ...c, scoreA: side === 'A' ? value : c.scoreA, scoreB: side === 'B' ? value : c.scoreB };
+      nc.winner =
+        nc.scoreA != null && nc.scoreB != null && nc.scoreA !== nc.scoreB ? (nc.scoreA > nc.scoreB ? 'A' : 'B') : null;
+      return nc;
+    });
     save({ ...state, courts });
   };
 
@@ -183,8 +199,8 @@ export default function TournamentScreen({ date }) {
           </div>
           <p className="text-xs text-muted mx-1 mb-1">
             {round === 1
-              ? 'Round 1: tutti giocano un set. Poi i vincenti si sfidano tra loro e i perdenti tra loro.'
-              : 'Round 2: vincenti contro vincenti, perdenti contro perdenti. Le etichette indicano da quale campo arriva ogni squadra.'}
+              ? 'Round 1: tutti giocano. Inserisci il punteggio di ogni partita — il vincente passa al Round 2 (vincenti vs vincenti, perdenti vs perdenti).'
+              : 'Round 2: vincenti contro vincenti, perdenti contro perdenti. Inserisci i punteggi finali.'}
           </p>
 
           {round === 2 && state.lastResults && (
@@ -195,7 +211,9 @@ export default function TournamentScreen({ date }) {
                   <li key={r.court} className="flex flex-wrap items-baseline gap-x-2">
                     <span className="text-muted text-xs uppercase tracking-wide">Campo {r.court + 1}</span>
                     <span className="text-win font-semibold">{r.winner.join(', ')}</span>
-                    <span className="text-muted text-xs">batte</span>
+                    <span className="font-display tabular-nums text-sm">
+                      {r.scoreWinner}–{r.scoreLoser}
+                    </span>
                     <span className="text-ink/70">{r.loser.join(', ')}</span>
                   </li>
                 ))}
@@ -227,11 +245,23 @@ export default function TournamentScreen({ date }) {
                     <span className="text-[0.68rem] font-bold uppercase tracking-wider text-muted">{courtTag(c)}</span>
                   )}
                 </div>
-                <TeamRow team={c.teamA} win={c.winner === 'A'} admin={admin} onWin={() => setWinner(i, 'A')} />
+                <TeamRow
+                  team={c.teamA}
+                  score={c.scoreA}
+                  win={c.scoreA != null && c.scoreB != null && c.scoreA > c.scoreB}
+                  admin={admin}
+                  onScore={(v) => setScore(i, 'A', v)}
+                />
                 <div className="text-center font-extrabold text-[0.7rem] tracking-[0.1em] text-muted my-1.5 uppercase">
                   vs
                 </div>
-                <TeamRow team={c.teamB} win={c.winner === 'B'} admin={admin} onWin={() => setWinner(i, 'B')} />
+                <TeamRow
+                  team={c.teamB}
+                  score={c.scoreB}
+                  win={c.scoreA != null && c.scoreB != null && c.scoreB > c.scoreA}
+                  admin={admin}
+                  onScore={(v) => setScore(i, 'B', v)}
+                />
               </section>
             );
           })}

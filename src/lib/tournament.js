@@ -77,16 +77,20 @@ function winnerLoser(court, i) {
   if (court.winner !== 'A' && court.winner !== 'B') {
     throw new Error(`Campo ${i} senza vincitore`);
   }
-  const winner = court.winner === 'A' ? court.teamA : court.teamB;
-  const loser = court.winner === 'A' ? court.teamB : court.teamA;
-  return { winner, loser };
+  const a = court.winner === 'A';
+  return {
+    winner: a ? court.teamA : court.teamB,
+    loser: a ? court.teamB : court.teamA,
+    scoreWinner: a ? court.scoreA : court.scoreB,
+    scoreLoser: a ? court.scoreB : court.scoreA,
+  };
 }
 
-// Riepilogo del Round 1: per ogni campo chi ha vinto e chi ha perso (per la UI).
+// Riepilogo del Round 1: per ogni campo chi ha vinto/perso e con che punteggio.
 export function roundOneResults(courts) {
   return courts.map((c, i) => {
-    const { winner, loser } = winnerLoser(c, i);
-    return { court: i, winner: winner.players, loser: loser.players };
+    const { winner, loser, scoreWinner, scoreLoser } = winnerLoser(c, i);
+    return { court: i, winner: winner.players, loser: loser.players, scoreWinner, scoreLoser };
   });
 }
 
