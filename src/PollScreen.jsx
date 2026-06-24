@@ -239,6 +239,7 @@ function AdminBooking({ sess, onSave, onCancel, notify }) {
 export default function PollScreen() {
   const [name, setName] = useName();
   const [nameInput, setNameInput] = useState('');
+  const [surnameInput, setSurnameInput] = useState('');
   const [conflictName, setConflictName] = useState(null);
   const [checking, setChecking] = useState(false);
   const [signups, setSignups] = useState([]);
@@ -328,13 +329,15 @@ export default function PollScreen() {
   }
 
   async function submitName() {
-    const trimmed = nameInput.trim();
-    if (!trimmed) return;
+    const nome = nameInput.trim();
+    const ini = surnameInput.trim();
+    if (!nome || !ini) return;
+    const full = `${nome} ${ini[0].toUpperCase()}.`;
     setChecking(true);
-    const { data } = await supabase.from('signups').select('player_name').eq('player_name', trimmed).limit(1);
+    const { data } = await supabase.from('signups').select('player_name').eq('player_name', full).limit(1);
     setChecking(false);
-    if (data && data.length > 0) setConflictName(trimmed);
-    else setName(trimmed);
+    if (data && data.length > 0) setConflictName(full);
+    else setName(full);
   }
 
   // ---- Schermata nome (primo accesso) ----
@@ -379,15 +382,29 @@ export default function PollScreen() {
                   submitName();
                 }}
               >
-                <label className="text-sm font-semibold">Come ti chiami?</label>
-                <input
-                  className="mt-2 w-full px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent"
-                  value={nameInput}
-                  onChange={(e) => setNameInput(e.target.value)}
-                  placeholder="Il tuo nome"
-                  autoFocus
-                />
-                <button className={`${btnPrimary} mt-3`} type="submit" disabled={checking || !nameInput.trim()}>
+                <label className="text-sm font-semibold">Nome e iniziale del cognome</label>
+                <div className="flex gap-2 mt-2">
+                  <input
+                    className="flex-1 min-w-0 px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent"
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    placeholder="Nome"
+                    autoFocus
+                  />
+                  <input
+                    className="w-20 px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent text-center uppercase"
+                    value={surnameInput}
+                    onChange={(e) => setSurnameInput(e.target.value)}
+                    placeholder="Cogn."
+                    maxLength={1}
+                    aria-label="Iniziale del cognome"
+                  />
+                </div>
+                <button
+                  className={`${btnPrimary} mt-3`}
+                  type="submit"
+                  disabled={checking || !nameInput.trim() || !surnameInput.trim()}
+                >
                   {checking ? 'Controllo…' : 'Entra'}
                 </button>
               </form>
