@@ -9,7 +9,6 @@ const btnBase =
   'font-semibold text-sm px-4 py-3 rounded-xl border transition active:scale-95 hover:-translate-y-px disabled:opacity-50 disabled:pointer-events-none';
 const btn = `${btnBase} border-line bg-surface text-ink hover:shadow-[var(--shadow-card)]`;
 const btnPrimary = `${btnBase} border-coral bg-coral text-white shadow-[0_8px_18px_-8px_rgba(255,90,54,0.7)]`;
-const btnIn = `${btnBase} border-win/30 bg-winbg text-win`;
 const btnGo = `${btnBase} ml-auto border-ink bg-ink text-white no-underline`;
 
 const fmtDow = (iso) => {
@@ -331,9 +330,20 @@ export default function PollScreen() {
             )}
 
             <div className="flex flex-wrap gap-2.5 items-center mt-4">
-              <button className={isIn(date) ? btnIn : btnPrimary} onClick={() => toggle(date)}>
-                {isIn(date) ? 'Confermato - Annulla' : 'Ci sono'}
-              </button>
+              {isIn(date) ? (
+                <>
+                  <span className="inline-flex items-center gap-1.5 font-semibold text-sm px-4 py-3 rounded-xl bg-winbg text-win border border-win/30">
+                    ✓ Confermato
+                  </span>
+                  <button className={`${btnBase} border-line bg-surface text-coral`} onClick={() => toggle(date)}>
+                    Annulla
+                  </button>
+                </>
+              ) : (
+                <button className={btnPrimary} onClick={() => toggle(date)}>
+                  Ci sono
+                </button>
+              )}
               {booked &&
                 (canStart ? (
                   <a className={btnGo} href={`?date=${date}&view=tournament${adminQS}`}>
