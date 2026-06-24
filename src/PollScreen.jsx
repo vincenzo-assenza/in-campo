@@ -350,11 +350,11 @@ export default function PollScreen() {
         </header>
 
         <section className="flex-1 flex flex-col justify-center py-10">
-          <h1 className="font-display text-[2.2rem] font-bold leading-[1.08] text-balance">
-            Gestione partite e tornei
+          <h1 className="font-display text-[2.3rem] font-bold leading-[1.06] text-balance">
+            Pronto a giocare?
           </h1>
-          <p className="text-muted mt-3 text-[1.02rem]">
-            Segnala la disponibilità per le serate e segui i tornei del gruppo.
+          <p className="text-muted mt-3 text-[1.02rem] text-balance">
+            Segna la tua presenza e segui il torneo dal vivo.
           </p>
 
           <div className="anim-rise bg-surface border border-line rounded-2xl p-5 mt-7 shadow-[var(--shadow-card)]">
@@ -400,8 +400,11 @@ export default function PollScreen() {
                     aria-label="Iniziale del cognome"
                   />
                 </div>
+                <p className="text-xs text-faint mt-2">
+                  Apparirai come <b className="text-muted font-semibold">{`${nameInput.trim() || 'Nome'} ${(surnameInput.trim()[0] || 'X').toUpperCase()}.`}</b>
+                </p>
                 <button
-                  className={`${btnPrimary} mt-3`}
+                  className={`${btnPrimary} mt-4`}
                   type="submit"
                   disabled={checking || !nameInput.trim() || !surnameInput.trim()}
                 >
@@ -415,6 +418,7 @@ export default function PollScreen() {
 
         <footer className="py-6 flex flex-col items-center gap-3 text-center">
           <AdminLogin topClass="" />
+          <p className="text-xs text-faint">Powered by Vincenzo</p>
         </footer>
       </main>
     );
@@ -423,7 +427,7 @@ export default function PollScreen() {
   // ---- Sondaggio ----
   return (
     <main className="max-w-[460px] mx-auto px-5 pb-20">
-      <header className="anim-rise flex items-center justify-between gap-3 pt-4">
+      <header className="sticky top-0 z-30 -mx-5 px-5 py-3 bg-surface border-b border-line flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <Ball className="w-6 h-6 text-accent" />
           <h1 className="font-display text-[1.3rem] font-bold">Beach Volley</h1>
@@ -620,6 +624,8 @@ export default function PollScreen() {
       </div>
 
       {!admin && <AdminLogin />}
+
+      <footer className="mt-10 text-center text-xs text-faint">Powered by Vincenzo</footer>
 
       {toast && (
         <div
