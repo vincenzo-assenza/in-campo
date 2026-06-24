@@ -392,18 +392,6 @@ export default function PollScreen() {
             )}
           </div>
 
-          <ul className="mt-7 flex flex-col gap-3 text-sm text-muted">
-            {[
-              'Presenze settimanali con lista d\'attesa',
-              'Campi e formazioni generati in automatico',
-              'Tornei live con punteggi e turni',
-            ].map((f) => (
-              <li key={f} className="flex items-center gap-2.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent flex-none" />
-                {f}
-              </li>
-            ))}
-          </ul>
         </section>
 
         <footer className="py-6 flex flex-col items-center gap-3 text-center">

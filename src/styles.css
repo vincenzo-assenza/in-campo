@@ -30,7 +30,7 @@
     background-color: var(--color-ground);
     background-image: url("/sun.svg"), url("/bg.svg"), linear-gradient(180deg, #f6f8f7 0%, #eef1f0 100%);
     background-size: 280px auto, cover, auto;
-    background-position: top -40px right -50px, center bottom, center;
+    background-position: top -40px right -50px, center bottom -80px, center;
     background-repeat: no-repeat, no-repeat, no-repeat;
     background-attachment: fixed, fixed, fixed;
     min-height: 100dvh;
