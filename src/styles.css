@@ -28,9 +28,10 @@
     font-family: var(--font-sans);
     color: var(--color-ink);
     background-color: var(--color-ground);
-    background-image:
-      radial-gradient(130% 90% at 50% -20%, rgba(15, 118, 110, 0.08), transparent 55%),
-      linear-gradient(180deg, #f6f8f7 0%, #eef1f0 55%, #e9edeb 100%);
+    background-image: url("/bg.svg"), linear-gradient(180deg, #f6f8f7 0%, #eef1f0 100%);
+    background-size: cover, auto;
+    background-position: center bottom, center;
+    background-repeat: no-repeat;
     background-attachment: fixed;
     min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
