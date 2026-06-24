@@ -2,7 +2,7 @@
 
 Prenotazione presenze settimanali + torneo live king-of-the-court, per un gruppo di amici. Un solo link, niente login.
 
-**Stack:** React + Vite · Tailwind CSS v4 · Supabase (Postgres + Realtime) · font Anton + Inter · deploy Vercel.
+**Stack:** React + Vite · Tailwind CSS v4 · Supabase (Postgres + Realtime) · font Bricolage Grotesque + Hanken Grotesk · deploy Vercel. UI minimal mobile-first ("Quiet Court": base neutra, accento teal).
 
 ## Setup
 

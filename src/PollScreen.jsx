@@ -13,13 +13,17 @@ import {
   logoutAdmin,
 } from './config.js';
 import { useName } from './useName.js';
-import { initials, avatar } from './ui.js';
+import { initials } from './ui.js';
 
-const btnBase =
-  'font-semibold text-sm px-4 py-3 rounded-xl border transition active:scale-95 hover:-translate-y-px disabled:opacity-50 disabled:pointer-events-none';
-const btn = `${btnBase} border-line bg-surface text-ink hover:shadow-[var(--shadow-card)]`;
-const btnPrimary = `${btnBase} border-coral bg-coral text-white shadow-[0_8px_18px_-8px_rgba(255,90,54,0.7)]`;
-const btnGo = `${btnBase} ml-auto border-ink bg-ink text-white no-underline`;
+const btnPrimary =
+  'block w-full text-center font-semibold text-[0.95rem] px-4 py-3 rounded-xl bg-night text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
+const btnOutline =
+  'block w-full text-center font-semibold text-[0.95rem] px-4 py-3 rounded-xl border border-line2 bg-surface text-ink no-underline transition hover:border-ink active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
+const statusBox = 'block w-full text-center font-semibold text-[0.95rem] px-4 py-3 rounded-xl';
+const undoLink = 'block mx-auto text-xs text-faint underline';
+const btnSm = 'font-semibold text-sm px-4 py-2.5 rounded-lg bg-night text-white transition active:scale-[.99] disabled:opacity-50';
+const btnSmOutline = 'font-semibold text-sm px-4 py-2.5 rounded-lg border border-line2 bg-surface text-ink transition';
+const field = 'mt-1 w-full px-3 py-2 rounded-lg border border-line bg-surface outline-none focus:border-accent text-base text-ink';
 
 const fmtDow = (iso) => {
   const s = new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric' });
@@ -37,27 +41,47 @@ const weekRange = () => {
   return `${day(mon)}–${sun.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}`;
 };
 
-function Chip({ name, organizer, onRemove }) {
-  const a = avatar(name);
+function Avatar({ name, size = 'sm', stack }) {
+  const sz = { lg: 'w-10 h-10 text-[0.85rem]', sm: 'w-7 h-7 text-[0.68rem]', xs: 'w-5 h-5 text-[0.6rem]' }[size];
   return (
     <span
-      className={`inline-flex items-center gap-1.5 bg-[#F1F7F5] border border-line rounded-full pl-1 py-1 text-sm font-semibold ${
-        onRemove ? 'pr-1' : 'pr-2.5'
-      } ${organizer ? 'ring-1 ring-sun' : ''}`}
+      className={`grid place-items-center rounded-full bg-[#E7E9E6] text-ink font-bold flex-none ${sz}${
+        stack ? ' ring-[2.5px] ring-surface -ml-2 first:ml-0' : ''
+      }`}
     >
-      <span
-        className="grid place-items-center w-5 h-5 rounded-full text-[0.66rem] font-extrabold"
-        style={{ background: a.bg, color: a.fg }}
-      >
-        {initials(name)}
-      </span>
+      {initials(name)}
+    </span>
+  );
+}
+
+function AvatarStack({ players, max = 4 }) {
+  const shown = players.slice(0, max);
+  const extra = players.length - shown.length;
+  return (
+    <div className="flex items-center">
+      {shown.map((p) => (
+        <Avatar key={p} name={p} stack />
+      ))}
+      {extra > 0 && (
+        <span className="-ml-2 grid place-items-center w-7 h-7 rounded-full text-[0.66rem] font-semibold text-muted bg-surface border border-dashed border-line2 ring-[2.5px] ring-surface">
+          +{extra}
+        </span>
+      )}
+    </div>
+  );
+}
+
+function Chip({ name, organizer, onRemove }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 bg-ground border border-line rounded-full pl-1 pr-1 py-1 text-sm font-medium">
+      <Avatar name={name} size="xs" />
       {organizer && <span title="Organizzatore">👑</span>}
       {name}
       {onRemove && (
         <button
           onClick={onRemove}
           aria-label={`Rimuovi ${name}`}
-          className="grid place-items-center w-5 h-5 rounded-full text-muted hover:text-coral hover:bg-coral/10"
+          className="grid place-items-center w-5 h-5 rounded-full text-faint hover:text-ink hover:bg-line"
         >
           ×
         </button>
@@ -78,13 +102,13 @@ function AdminLogin() {
   };
   if (!open) {
     return (
-      <button className="block mx-auto mt-10 text-xs text-muted underline" onClick={() => setOpen(true)}>
+      <button className="block mx-auto mt-12 text-xs text-faint underline" onClick={() => setOpen(true)}>
         Sei l'organizzatore? Accedi
       </button>
     );
   }
   return (
-    <form onSubmit={submit} className="mt-10 flex flex-wrap items-center justify-center gap-2">
+    <form onSubmit={submit} className="mt-12 flex flex-wrap items-center justify-center gap-2">
       <input
         type="password"
         value={pin}
@@ -94,12 +118,12 @@ function AdminLogin() {
         }}
         placeholder="PIN organizzatore"
         autoFocus
-        className="px-3 py-2 rounded-lg border border-line bg-surface outline-none focus:border-coral text-sm"
+        className="px-3 py-2 rounded-lg border border-line bg-surface outline-none focus:border-accent text-sm"
       />
-      <button className={`${btnBase} border-coral bg-coral text-white`} type="submit">
+      <button className={btnSm} type="submit">
         Accedi
       </button>
-      {err && <span className="w-full text-center text-coral text-xs">PIN errato</span>}
+      {err && <span className="w-full text-center text-accent text-xs">PIN errato</span>}
     </form>
   );
 }
@@ -109,14 +133,13 @@ const WD_LABELS = [
   ['Lun', 1], ['Mar', 2], ['Mer', 3], ['Gio', 4], ['Ven', 5], ['Sab', 6], ['Dom', 0],
 ];
 
-// Pannello organizzatore: scelta dei giorni ricorrenti (validi per tutti).
 function DaysSettings({ weekdays, onSave }) {
   const [sel, setSel] = useState(weekdays);
   useEffect(() => setSel(weekdays), [weekdays.join(',')]);
   const toggle = (d) => setSel((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d]));
   return (
-    <details className="anim-rise bg-surface border border-line rounded-2xl p-4 mt-4 shadow-[var(--shadow-card)]">
-      <summary className="cursor-pointer text-sm font-semibold text-muted">⚙️ Giorni ricorrenti</summary>
+    <details className="bg-surface border border-line rounded-2xl px-4 py-3 mt-4 shadow-[var(--shadow-card)]">
+      <summary className="cursor-pointer text-sm font-semibold text-muted">Giorni ricorrenti</summary>
       <p className="text-xs text-muted mt-2">In quali giorni della settimana si propone di giocare.</p>
       <div className="flex flex-wrap gap-2 mt-3">
         {WD_LABELS.map(([label, d]) => (
@@ -125,39 +148,31 @@ function DaysSettings({ weekdays, onSave }) {
             type="button"
             onClick={() => toggle(d)}
             className={`px-3 py-2 rounded-full border text-sm font-semibold transition ${
-              sel.includes(d) ? 'bg-coral text-white border-coral' : 'bg-surface text-ink border-line'
+              sel.includes(d) ? 'bg-night text-white border-night' : 'bg-surface text-ink border-line2'
             }`}
           >
             {label}
           </button>
         ))}
       </div>
-      <button
-        className={`${btnPrimary} mt-3`}
-        disabled={sel.length === 0}
-        onClick={() => onSave([...sel].sort((a, b) => a - b))}
-      >
+      <button className={`${btnSm} mt-3`} disabled={sel.length === 0} onClick={() => onSave([...sel].sort((a, b) => a - b))}>
         Salva giorni
       </button>
     </details>
   );
 }
 
-// Pannello organizzatore: capienza (→ lista d'attesa) e numero campi (→ torneo).
 function AdminBooking({ sess, onSave, onCancel }) {
   const [cap, setCap] = useState(String(sess?.capacity ?? DEFAULT_CAPACITY));
   const [courts, setCourts] = useState(String(sess?.courts ?? DEFAULT_COURTS));
   const [note, setNote] = useState(sess?.note ?? DEFAULT_TIME);
   const booked = sess?.status === 'booked';
 
-  // Allinea i campi quando i dati della sessione arrivano/cambiano (al primo render
-  // sess è ancora null → altrimenti il valore salvato resterebbe sovrascritto dal default).
   useEffect(() => {
     if (sess?.capacity != null) setCap(String(sess.capacity));
     if (sess?.courts != null) setCourts(String(sess.courts));
     if (sess?.note != null) setNote(sess.note);
   }, [sess?.capacity, sess?.courts, sess?.note]);
-  const field = 'mt-1 w-full px-3 py-2 rounded-lg border border-line bg-surface outline-none focus:border-coral text-base text-ink';
 
   const save = () =>
     onSave({
@@ -167,11 +182,10 @@ function AdminBooking({ sess, onSave, onCancel }) {
     });
 
   return (
-    <details className="mt-3 border-t border-line pt-3">
-      <summary className="cursor-pointer text-sm font-semibold text-muted">⚙️ Gestione organizzatore</summary>
+    <details className="border-t border-line pt-3">
+      <summary className="cursor-pointer text-sm font-semibold text-muted">Gestione organizzatore</summary>
       <p className="text-sm mt-3">
-        Stato:{' '}
-        <b className={booked ? 'text-coral' : 'text-muted'}>{booked ? 'Prenotato ✅' : 'Non prenotato'}</b>
+        Stato: <b className={booked ? 'text-accent' : 'text-muted'}>{booked ? 'Prenotato' : 'Non prenotato'}</b>
       </p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <label className="text-xs font-semibold text-muted">
@@ -188,14 +202,11 @@ function AdminBooking({ sess, onSave, onCancel }) {
         </label>
       </div>
       <div className="flex flex-wrap gap-2 mt-3">
-        <button className={btnPrimary} onClick={save}>
+        <button className={btnSm} onClick={save}>
           {booked ? 'Salva modifiche' : 'Prenota e salva'}
         </button>
         {booked && (
-          <button
-            className="font-semibold text-sm px-4 py-3 rounded-xl border border-line bg-surface text-coral transition active:scale-95 hover:-translate-y-px"
-            onClick={onCancel}
-          >
+          <button className={`${btnSmOutline} text-accent`} onClick={onCancel}>
             Annulla prenotazione
           </button>
         )}
@@ -207,12 +218,12 @@ function AdminBooking({ sess, onSave, onCancel }) {
 export default function PollScreen() {
   const [name, setName] = useName();
   const [nameInput, setNameInput] = useState('');
-  const [conflictName, setConflictName] = useState(null); // nome già esistente da confermare
+  const [conflictName, setConflictName] = useState(null);
   const [checking, setChecking] = useState(false);
-  const [signups, setSignups] = useState([]); // tutte le righe dei giorni candidati
-  const [sessions, setSessions] = useState({}); // session_date -> row
-  const [weekdays, setWeekdays] = useState(WEEKDAYS); // giorni ricorrenti (da settings)
-  const [organizerName, setOrganizerName] = useState(null); // nome organizzatore (badge 👑)
+  const [signups, setSignups] = useState([]);
+  const [sessions, setSessions] = useState({});
+  const [weekdays, setWeekdays] = useState(WEEKDAYS);
+  const [organizerName, setOrganizerName] = useState(null);
   const days = weekCandidateDays(weekdays, new Date());
   const admin = isAdmin();
 
@@ -267,14 +278,12 @@ export default function PollScreen() {
     load();
   }
 
-  // Annulla la prenotazione (torna "non prenotato") mantenendo capienza/campi/nota.
   async function cancelBooking(date) {
     if (!confirm('Annullare la prenotazione di questo giorno?')) return;
     await supabase.from('sessions').update({ status: 'open' }).eq('session_date', date);
     load();
   }
 
-  // Admin: rimuove un iscritto qualsiasi (ritiro last-minute). Toglie un confermato → sale il primo in attesa.
   async function removePlayer(date, playerName) {
     if (!confirm(`Rimuovere ${playerName}?`)) return;
     await supabase.from('signups').delete().match({ session_date: date, player_name: playerName });
@@ -286,7 +295,6 @@ export default function PollScreen() {
     window.location.reload();
   }
 
-  // Primo accesso: se il nome esiste già tra gli iscritti, chiedi se è lui o un nuovo giocatore.
   async function submitName() {
     const trimmed = nameInput.trim();
     if (!trimmed) return;
@@ -297,22 +305,26 @@ export default function PollScreen() {
     else setName(trimmed);
   }
 
+  // ---- Schermata nome (primo accesso) ----
   if (!name) {
     return (
-      <main className="max-w-[600px] mx-auto px-4 pb-16">
-        <div className="anim-rise bg-surface border border-line rounded-3xl p-6 mt-8 shadow-[var(--shadow-card)]">
-          <h1 className="font-display text-4xl">Beach Volley 🏐</h1>
+      <main className="max-w-[460px] mx-auto px-5 pb-16">
+        <div className="anim-rise bg-surface border border-line rounded-3xl p-6 mt-12 shadow-[var(--shadow-card)]">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+            <h1 className="font-display text-[1.4rem] font-bold">Beach Volley</h1>
+          </div>
 
           {conflictName ? (
             <>
-              <p className="mt-3">
+              <p className="mt-4">
                 Esiste già un giocatore di nome <b>{conflictName}</b>. Sei tu?
               </p>
-              <div className="flex flex-wrap gap-2.5 mt-4">
+              <div className="flex flex-col gap-2 mt-4">
                 <button className={btnPrimary} onClick={() => setName(conflictName)}>
                   Sì, sono io
                 </button>
-                <button className={btn} onClick={() => setConflictName(null)}>
+                <button className={btnOutline} onClick={() => setConflictName(null)}>
                   No, sono un altro
                 </button>
               </div>
@@ -327,19 +339,17 @@ export default function PollScreen() {
                 submitName();
               }}
             >
-              <p className="text-muted mt-1">Come ti chiami?</p>
+              <p className="text-muted mt-3">Come ti chiami?</p>
               <input
-                className="mt-3 w-full max-w-[260px] px-3 py-2.5 rounded-lg border border-line bg-surface outline-none focus:border-coral"
+                className="mt-3 w-full px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent"
                 value={nameInput}
                 onChange={(e) => setNameInput(e.target.value)}
                 placeholder="Il tuo nome"
                 autoFocus
               />
-              <div className="mt-4">
-                <button className={btnPrimary} type="submit" disabled={checking || !nameInput.trim()}>
-                  {checking ? 'Controllo…' : 'Entra'}
-                </button>
-              </div>
+              <button className={`${btnPrimary} mt-4`} type="submit" disabled={checking || !nameInput.trim()}>
+                {checking ? 'Controllo…' : 'Entra'}
+              </button>
             </form>
           )}
         </div>
@@ -347,216 +357,199 @@ export default function PollScreen() {
     );
   }
 
+  // ---- Sondaggio ----
   return (
-    <main className="max-w-[600px] mx-auto px-4 pb-16">
-      <header className="hero-sunset anim-rise relative overflow-hidden rounded-3xl px-6 pt-7 pb-8 mt-4 text-white shadow-[var(--shadow-lift)]">
-        <div
-          className="absolute -right-10 -top-12 w-44 h-44 rounded-full pointer-events-none"
-          style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.5), transparent 65%)' }}
-        />
-        <div className="relative">
-          <div className="text-xs font-bold tracking-[0.16em] uppercase opacity-90">
-            {weekRange()} · la tua settimana
+    <main className="max-w-[460px] mx-auto px-5 pb-20">
+      <header className="anim-rise flex items-center justify-between gap-3 pt-4">
+        <div className="flex items-center gap-2.5">
+          <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+          <h1 className="font-display text-[1.3rem] font-bold">Beach Volley</h1>
+        </div>
+        <div className="flex items-center gap-2.5">
+          <div className="text-right leading-tight">
+            <div className="text-[0.72rem] text-muted">ciao</div>
+            <div className="text-sm font-semibold">{name}</div>
           </div>
-          <h1 className="font-display text-5xl mt-2 leading-[0.95]">
-            Beach
-            <br />
-            Volley 🏐
-          </h1>
-          <p className="mt-2 text-[0.95rem] max-w-[32ch] opacity-95">
-            Segna quando puoi. Quando il campo si riempie, prenotiamo.
-          </p>
-          <div className="mt-4 inline-flex items-center gap-2 rounded-full bg-white/20 backdrop-blur px-3 py-1.5 text-sm font-semibold">
-            <span className="grid place-items-center w-6 h-6 rounded-full bg-ink text-white text-[0.7rem] font-extrabold">
-              {initials(name)}
-            </span>
-            Ciao, {name} ·{' '}
-            <button className="underline opacity-90 text-xs font-medium" onClick={changeName}>
-              cambia
-            </button>
-          </div>
-          {admin && (
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              {organizerName === name ? (
-                <span className="inline-flex items-center gap-1 rounded-full bg-white/25 px-3 py-1 text-sm font-bold">
-                  👑 Organizzatore
-                </span>
-              ) : (
-                <button
-                  className="inline-flex items-center gap-1 rounded-full bg-white/25 px-3 py-1 text-sm font-semibold underline"
-                  onClick={claimOrganizer}
-                >
-                  Sono io l'organizzatore
-                </button>
-              )}
-              <button
-                className="text-xs underline opacity-90"
-                onClick={() => {
-                  logoutAdmin();
-                  window.location.reload();
-                }}
-              >
-                Esci da organizzatore
-              </button>
-            </div>
-          )}
+          <Avatar name={name} size="lg" />
         </div>
       </header>
 
-      {admin && <DaysSettings weekdays={weekdays} onSave={saveWeekdays} />}
-
-      <div className="flex items-baseline justify-between mt-7 mx-1">
-        <span className="text-xs font-bold tracking-[0.14em] uppercase text-muted">Giorni candidati</span>
-        <span className="text-sm text-muted">{days.length} disponibili</span>
+      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+        <button className="underline" onClick={changeName}>
+          cambia nome
+        </button>
+        {admin &&
+          (organizerName === name ? (
+            <span className="text-accent font-semibold">👑 Organizzatore</span>
+          ) : (
+            <button className="underline" onClick={claimOrganizer}>
+              Sono io l'organizzatore
+            </button>
+          ))}
+        {admin && (
+          <button
+            className="underline"
+            onClick={() => {
+              logoutAdmin();
+              window.location.reload();
+            }}
+          >
+            esci
+          </button>
+        )}
       </div>
 
-      {days.length === 0 && <p className="text-muted mt-3 mx-1">Nessun giorno candidato questa settimana.</p>}
+      <a
+        href={VENUE.mapsUrl}
+        target="_blank"
+        rel="noreferrer"
+        className="mt-4 flex items-center gap-2 text-sm text-muted bg-surface border border-line rounded-xl px-4 py-3 no-underline"
+      >
+        <span>📍</span>
+        <span>
+          <b className="text-ink font-semibold">{VENUE.name}</b> · {VENUE.address}
+        </span>
+        <span className="ml-auto text-faint">›</span>
+      </a>
 
-      {days.map((date, idx) => {
-        const sess = sessions[date];
-        const booked = sess?.status === 'booked';
-        const cap = sess?.capacity ?? DEFAULT_CAPACITY;
-        const daySignups = signups.filter((s) => s.session_date === date);
-        const { confirmed, waitlist } = splitConfirmedWaitlist(daySignups, cap);
-        const fillPct = cap > 0 ? Math.min(100, Math.round((confirmed.length / cap) * 100)) : 0;
-        const free = Math.max(0, cap - confirmed.length);
-        const chips = confirmed.slice(0, 5);
-        const extra = confirmed.length - chips.length;
-        const sub = booked && sess?.note ? sess.note : `${DEFAULT_TIME} · da prenotare`;
-        const startTime = parseStartTime(sess?.note, DEFAULT_START);
-        // L'organizzatore può entrare prima (per preparare le formazioni); i giocatori dall'orario di inizio.
-        const canStart = booked && (admin || hasStarted(date, startTime, new Date()));
-        // Stato del giocatore corrente su questo giorno.
-        const userConfirmed = confirmed.some((s) => s.player_name === name);
-        const waitPos = waitlist.findIndex((s) => s.player_name === name); // -1 se non in attesa
-        const full = confirmed.length >= cap;
+      {admin && <DaysSettings weekdays={weekdays} onSave={saveWeekdays} />}
 
-        return (
-          <section
-            key={date}
-            className={`anim-rise bg-surface rounded-2xl p-[18px] my-3.5 shadow-[var(--shadow-card)] border ${
-              booked ? 'border-coral/35' : 'border-line'
-            }`}
-            style={{ animationDelay: `${idx * 0.06}s` }}
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="font-display text-2xl">{fmtDow(date)}</div>
-                <div className="text-sm text-muted mt-0.5">{sub}</div>
-              </div>
-              {booked && (
-                <span className="shrink-0 text-[0.68rem] font-extrabold tracking-wider uppercase text-white bg-coral px-2.5 py-1.5 rounded-full shadow-[0_4px_10px_-4px_rgba(255,90,54,0.6)]">
-                  Prenotato
-                </span>
-              )}
-            </div>
+      <div className="flex items-baseline justify-between mt-8 mb-3 mx-0.5">
+        <span className="text-[0.72rem] font-semibold tracking-[0.09em] uppercase text-faint">
+          Settimana {weekRange()}
+        </span>
+        <span className="text-sm text-muted">{days.length} giorni</span>
+      </div>
 
-            <a
-              href={VENUE.mapsUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-sm text-coral mt-2"
+      {days.length === 0 && <p className="text-muted mx-0.5">Nessun giorno candidato questa settimana.</p>}
+
+      <div className="flex flex-col gap-4">
+        {days.map((date) => {
+          const sess = sessions[date];
+          const booked = sess?.status === 'booked';
+          const cap = sess?.capacity ?? DEFAULT_CAPACITY;
+          const daySignups = signups.filter((s) => s.session_date === date);
+          const { confirmed, waitlist } = splitConfirmedWaitlist(daySignups, cap);
+          const free = Math.max(0, cap - confirmed.length);
+          const timeLabel = booked && sess?.note ? sess.note : DEFAULT_TIME;
+          const startTime = parseStartTime(sess?.note, DEFAULT_START);
+          const canStart = booked && (admin || hasStarted(date, startTime, new Date()));
+          const userConfirmed = confirmed.some((s) => s.player_name === name);
+          const waitPos = waitlist.findIndex((s) => s.player_name === name);
+          const full = confirmed.length >= cap;
+          const countText = waitlist.length > 0 ? `${waitlist.length} in lista` : free > 0 ? `${free} liberi` : 'pieno';
+
+          return (
+            <section
+              key={date}
+              className="anim-rise bg-surface border border-line rounded-[18px] p-[22px] shadow-[var(--shadow-card)] flex flex-col gap-[18px]"
             >
-              📍 {VENUE.name} · {VENUE.address}
-            </a>
-
-            <div className="mt-3.5">
-              <div className="flex justify-between text-sm mb-1.5">
-                <span>
-                  <b className="font-extrabold">{confirmed.length}</b>/{cap} confermati
-                </span>
-                {waitlist.length > 0 ? (
-                  <span className="text-coral font-bold">+{waitlist.length} in attesa</span>
-                ) : (
-                  <span className="text-muted">{free} posti liberi</span>
-                )}
-              </div>
-              <div className="h-2.5 rounded-full bg-line overflow-hidden">
-                <div className="h-full rounded-full fill-bar" style={{ width: `${fillPct}%` }} />
-              </div>
-            </div>
-
-            {confirmed.length > 0 && (
-              <div className="flex flex-wrap gap-1.5 mt-3">
-                {(admin ? confirmed : chips).map((s) => (
-                  <Chip
-                    key={s.player_name}
-                    name={s.player_name}
-                    organizer={s.player_name === organizerName}
-                    onRemove={admin ? () => removePlayer(date, s.player_name) : undefined}
-                  />
-                ))}
-                {!admin && extra > 0 && (
-                  <span className="inline-flex items-center border border-dashed border-line text-muted rounded-full px-2.5 py-1 text-sm font-semibold">
-                    +{extra}
+              {/* Giorno = punto focale */}
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="font-display text-[1.5rem] font-bold leading-tight">{fmtDow(date)}</div>
+                  <div className="text-sm text-muted mt-1">{timeLabel}</div>
+                </div>
+                {booked && (
+                  <span className="flex-none text-[0.72rem] font-semibold text-accent bg-accentsoft rounded-full px-2.5 py-1">
+                    Prenotato
                   </span>
                 )}
               </div>
-            )}
 
-            {waitlist.length > 0 && (
-              <details className="text-sm text-muted mt-2">
-                <summary className="cursor-pointer">Lista d'attesa ({waitlist.length})</summary>
-                {admin ? (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {waitlist.map((s) => (
-                      <Chip
-                        key={s.player_name}
-                        name={s.player_name}
-                        organizer={s.player_name === organizerName}
-                        onRemove={() => removePlayer(date, s.player_name)}
-                      />
-                    ))}
-                  </div>
-                ) : (
-                  <div className="mt-1">{waitlist.map((s) => s.player_name).join(', ')}</div>
-                )}
-              </details>
-            )}
-
-            <div className="flex flex-wrap gap-2.5 items-center mt-4">
-              {isIn(date) ? (
-                <>
-                  {userConfirmed ? (
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-sm px-4 py-3 rounded-xl bg-winbg text-win border border-win/30">
-                      ✓ Confermato
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 font-semibold text-sm px-4 py-3 rounded-xl bg-sun/20 text-ink border border-sun/50">
-                      🕓 In lista d'attesa · pos. {waitPos + 1}
-                    </span>
+              {/* Presenze */}
+              {admin ? (
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm text-muted">
+                    <b className="text-ink font-bold tabular-nums">{confirmed.length}</b>/{cap} confermati
+                    {waitlist.length > 0 && ` · ${waitlist.length} in lista`}
+                  </span>
+                  {confirmed.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {confirmed.map((s) => (
+                        <Chip
+                          key={s.player_name}
+                          name={s.player_name}
+                          organizer={s.player_name === organizerName}
+                          onRemove={() => removePlayer(date, s.player_name)}
+                        />
+                      ))}
+                    </div>
                   )}
-                  <button className={`${btnBase} border-line bg-surface text-coral`} onClick={() => toggle(date)}>
-                    Annulla
-                  </button>
-                </>
-              ) : full ? (
-                <button className={`${btnBase} border-sun/50 bg-sun/15 text-ink`} onClick={() => toggle(date)}>
-                  Mettiti in lista d'attesa
-                </button>
+                  {waitlist.length > 0 && (
+                    <details className="text-sm text-muted">
+                      <summary className="cursor-pointer">Lista d'attesa ({waitlist.length})</summary>
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        {waitlist.map((s) => (
+                          <Chip
+                            key={s.player_name}
+                            name={s.player_name}
+                            organizer={s.player_name === organizerName}
+                            onRemove={() => removePlayer(date, s.player_name)}
+                          />
+                        ))}
+                      </div>
+                    </details>
+                  )}
+                </div>
               ) : (
-                <button className={btnPrimary} onClick={() => toggle(date)}>
-                  Ci sono
-                </button>
-              )}
-              {booked &&
-                (canStart ? (
-                  <a className={btnGo} href={`?date=${date}&view=tournament`}>
-                    Inizia Torneo →
-                  </a>
-                ) : (
-                  <span className={`${btnGo} opacity-50 pointer-events-none`} aria-disabled="true">
-                    Inizia alle {startTime}
+                <div className="flex items-center gap-3">
+                  {confirmed.length > 0 ? (
+                    <AvatarStack players={confirmed.map((s) => s.player_name)} />
+                  ) : (
+                    <span className="text-sm text-faint">Ancora nessun confermato</span>
+                  )}
+                  <span className="ml-auto text-sm text-muted">
+                    <b className="text-ink font-bold tabular-nums">{confirmed.length}</b>/{cap} · {countText}
                   </span>
-                ))}
-            </div>
+                </div>
+              )}
 
-            {admin && (
-              <AdminBooking sess={sess} onSave={(v) => saveBooking(date, v)} onCancel={() => cancelBooking(date)} />
-            )}
-          </section>
-        );
-      })}
+              {/* Azione */}
+              <div className="flex flex-col gap-2">
+                {!isIn(date) ? (
+                  full ? (
+                    <button className={btnOutline} onClick={() => toggle(date)}>
+                      Mettiti in lista d'attesa
+                    </button>
+                  ) : (
+                    <button className={btnPrimary} onClick={() => toggle(date)}>
+                      Ci sono
+                    </button>
+                  )
+                ) : (
+                  <>
+                    {booked && userConfirmed ? (
+                      canStart ? (
+                        <a className={btnPrimary} href={`?date=${date}&view=tournament`}>
+                          Vai al torneo →
+                        </a>
+                      ) : (
+                        <span className={`${btnOutline} opacity-60 pointer-events-none`}>Inizia alle {startTime}</span>
+                      )
+                    ) : (
+                      <span
+                        className={`${statusBox} ${
+                          userConfirmed ? 'bg-accentsoft text-accent' : 'bg-ground text-muted border border-line'
+                        }`}
+                      >
+                        {userConfirmed ? '✓ Confermato' : `🕓 In lista d'attesa · pos. ${waitPos + 1}`}
+                      </span>
+                    )}
+                    <button className={undoLink} onClick={() => toggle(date)}>
+                      annulla la presenza
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {admin && (
+                <AdminBooking sess={sess} onSave={(v) => saveBooking(date, v)} onCancel={() => cancelBooking(date)} />
+              )}
+            </section>
+          );
+        })}
+      </div>
 
       {!admin && <AdminLogin />}
     </main>
