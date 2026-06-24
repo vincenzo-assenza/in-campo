@@ -6,6 +6,13 @@ export const DEFAULT_COURTS = 3;
 export const MAX_SCORE = 21; // set a 21 punti
 export const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN;
 
+// Sede di gioco (fissa).
+export const VENUE = {
+  name: 'Sporting Club Mestre — La Favorita',
+  address: 'Via Terraglietto 21/M, Mestre',
+  mapsUrl: 'https://maps.google.com/?q=Sporting+Club+Mestre+Via+Terraglietto+21%2FM+Mestre',
+};
+
 // ponytail: token in URL, barriera "tra amici", non un vero segreto
 export function isAdmin() {
   const token = new URLSearchParams(window.location.search).get('admin');

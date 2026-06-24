@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
 import { weekCandidateDays, splitConfirmedWaitlist, parseStartTime, hasStarted } from './lib/poll.js';
-import { WEEKDAYS, DEFAULT_CAPACITY, DEFAULT_COURTS, DEFAULT_TIME, DEFAULT_START, isAdmin } from './config.js';
+import { WEEKDAYS, DEFAULT_CAPACITY, DEFAULT_COURTS, DEFAULT_TIME, DEFAULT_START, VENUE, isAdmin } from './config.js';
 import { useName } from './useName.js';
 import { initials, avatar } from './ui.js';
 
@@ -314,6 +314,17 @@ export default function PollScreen() {
                 </span>
               )}
             </div>
+
+            {booked && (
+              <a
+                href={VENUE.mapsUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 text-sm text-coral mt-2"
+              >
+                📍 {VENUE.name} · {VENUE.address}
+              </a>
+            )}
 
             <div className="mt-3.5">
               <div className="flex justify-between text-sm mb-1.5">

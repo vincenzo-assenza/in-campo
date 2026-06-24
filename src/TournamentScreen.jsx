@@ -8,7 +8,7 @@ import {
   recordPairs,
 } from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
-import { DEFAULT_CAPACITY, DEFAULT_COURTS, MAX_SCORE, isAdmin } from './config.js';
+import { DEFAULT_CAPACITY, DEFAULT_COURTS, MAX_SCORE, VENUE, isAdmin } from './config.js';
 import { initials, avatar } from './ui.js';
 
 const btnBase =
@@ -346,6 +346,14 @@ export default function TournamentScreen({ date }) {
           </a>
           <h1 className="font-display text-4xl mt-2.5 leading-none">Torneo</h1>
           <div className="text-white/80 text-sm mt-1">{date}</div>
+          <a
+            href={VENUE.mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-white/80 text-sm underline mt-1"
+          >
+            📍 {VENUE.name}
+          </a>
           <div className="flex gap-7 mt-4">
             <Stat n={confirmed.length} k="giocatori" />
             <Stat n={courtCount} k="campi" />
