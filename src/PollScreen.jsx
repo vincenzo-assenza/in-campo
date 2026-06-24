@@ -344,11 +344,11 @@ export default function PollScreen() {
         </header>
 
         <section className="flex-1 flex flex-col justify-center py-10">
-          <h1 className="font-display text-[2.4rem] font-bold leading-[1.05] text-balance">
-            Le partite con gli amici, organizzate.
+          <h1 className="font-display text-[2.2rem] font-bold leading-[1.08] text-balance">
+            Gestione partite e tornei
           </h1>
           <p className="text-muted mt-3 text-[1.02rem]">
-            Segna chi c'è, prenota il campo e gioca il torneo — tutto in un posto.
+            Segnala la disponibilità per le serate e segui i tornei del gruppo.
           </p>
 
           <div className="anim-rise bg-surface border border-line rounded-2xl p-5 mt-7 shadow-[var(--shadow-card)]">
