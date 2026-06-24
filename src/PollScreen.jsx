@@ -315,16 +315,14 @@ export default function PollScreen() {
               )}
             </div>
 
-            {booked && (
-              <a
-                href={VENUE.mapsUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="inline-flex items-center gap-1 text-sm text-coral mt-2"
-              >
-                📍 {VENUE.name} · {VENUE.address}
-              </a>
-            )}
+            <a
+              href={VENUE.mapsUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 text-sm text-coral mt-2"
+            >
+              📍 {VENUE.name} · {VENUE.address}
+            </a>
 
             <div className="mt-3.5">
               <div className="flex justify-between text-sm mb-1.5">
