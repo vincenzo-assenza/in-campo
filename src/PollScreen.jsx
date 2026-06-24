@@ -119,6 +119,8 @@ function AdminBooking({ sess, onSave, onCancel }) {
 export default function PollScreen() {
   const [name, setName] = useName();
   const [nameInput, setNameInput] = useState('');
+  const [conflictName, setConflictName] = useState(null); // nome già esistente da confermare
+  const [checking, setChecking] = useState(false);
   const [signups, setSignups] = useState([]); // tutte le righe dei giorni candidati
   const [sessions, setSessions] = useState({}); // session_date -> row
   const days = weekCandidateDays(WEEKDAYS, new Date());
@@ -179,31 +181,63 @@ export default function PollScreen() {
     window.location.reload();
   }
 
+  // Primo accesso: se il nome esiste già tra gli iscritti, chiedi se è lui o un nuovo giocatore.
+  async function submitName() {
+    const trimmed = nameInput.trim();
+    if (!trimmed) return;
+    setChecking(true);
+    const { data } = await supabase.from('signups').select('player_name').eq('player_name', trimmed).limit(1);
+    setChecking(false);
+    if (data && data.length > 0) setConflictName(trimmed);
+    else setName(trimmed);
+  }
+
   if (!name) {
     return (
       <main className="max-w-[600px] mx-auto px-4 pb-16">
-        <form
-          className="anim-rise bg-surface border border-line rounded-3xl p-6 mt-8 shadow-[var(--shadow-card)]"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (nameInput.trim()) setName(nameInput);
-          }}
-        >
+        <div className="anim-rise bg-surface border border-line rounded-3xl p-6 mt-8 shadow-[var(--shadow-card)]">
           <h1 className="font-display text-4xl">Beach Volley 🏐</h1>
-          <p className="text-muted mt-1">Come ti chiami?</p>
-          <input
-            className="mt-3 w-full max-w-[260px] px-3 py-2.5 rounded-lg border border-line bg-surface outline-none focus:border-coral"
-            value={nameInput}
-            onChange={(e) => setNameInput(e.target.value)}
-            placeholder="Il tuo nome"
-            autoFocus
-          />
-          <div className="mt-4">
-            <button className={btnPrimary} type="submit">
-              Entra
-            </button>
-          </div>
-        </form>
+
+          {conflictName ? (
+            <>
+              <p className="mt-3">
+                Esiste già un giocatore di nome <b>{conflictName}</b>. Sei tu?
+              </p>
+              <div className="flex flex-wrap gap-2.5 mt-4">
+                <button className={btnPrimary} onClick={() => setName(conflictName)}>
+                  Sì, sono io
+                </button>
+                <button className={btn} onClick={() => setConflictName(null)}>
+                  No, sono un altro
+                </button>
+              </div>
+              <p className="text-muted text-sm mt-3">
+                Se sei un altro giocatore, aggiungi il cognome o un'iniziale per distinguerti.
+              </p>
+            </>
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                submitName();
+              }}
+            >
+              <p className="text-muted mt-1">Come ti chiami?</p>
+              <input
+                className="mt-3 w-full max-w-[260px] px-3 py-2.5 rounded-lg border border-line bg-surface outline-none focus:border-coral"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder="Il tuo nome"
+                autoFocus
+              />
+              <div className="mt-4">
+                <button className={btnPrimary} type="submit" disabled={checking || !nameInput.trim()}>
+                  {checking ? 'Controllo…' : 'Entra'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
       </main>
     );
   }
