@@ -13,7 +13,7 @@ import {
   logoutAdmin,
 } from './config.js';
 import { useName } from './useName.js';
-import { initials } from './ui.js';
+import { initials, avatarColor } from './ui.js';
 
 const btnPrimary =
   'block w-full text-center font-semibold text-[0.95rem] px-4 py-3 rounded-xl bg-night text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
@@ -45,9 +45,10 @@ function Avatar({ name, size = 'sm', stack }) {
   const sz = { lg: 'w-10 h-10 text-[0.85rem]', sm: 'w-7 h-7 text-[0.68rem]', xs: 'w-5 h-5 text-[0.6rem]' }[size];
   return (
     <span
-      className={`grid place-items-center rounded-full bg-[#E7E9E6] text-ink font-bold flex-none ${sz}${
+      className={`grid place-items-center rounded-full text-white font-bold flex-none ${sz}${
         stack ? ' ring-[2.5px] ring-surface -ml-2 first:ml-0' : ''
       }`}
+      style={{ background: avatarColor(name) }}
     >
       {initials(name)}
     </span>
@@ -514,7 +515,7 @@ export default function PollScreen() {
                     </button>
                   ) : (
                     <button className={btnPrimary} onClick={() => toggle(date)}>
-                      Ci sono
+                      Confermo
                     </button>
                   )
                 ) : (
