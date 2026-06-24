@@ -395,14 +395,6 @@ export default function PollScreen() {
         </section>
 
         <footer className="py-6 flex flex-col items-center gap-3 text-center">
-          <a
-            href={VENUE.mapsUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="text-xs text-faint no-underline"
-          >
-            📍 {VENUE.name} · {VENUE.address}
-          </a>
           <AdminLogin topClass="" />
         </footer>
       </main>
