@@ -14,6 +14,7 @@ import {
 } from './config.js';
 import { useName } from './useName.js';
 import { initials, avatarColor } from './ui.js';
+import { Ball } from './Ball.jsx';
 
 const btnPrimary =
   'block w-full text-center font-semibold text-[0.95rem] px-4 py-3 rounded-xl bg-night text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
@@ -338,8 +339,8 @@ export default function PollScreen() {
   if (!name) {
     return (
       <main className="min-h-screen max-w-[460px] mx-auto px-5 flex flex-col">
-        <header className="flex items-center gap-2.5 pt-5">
-          <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+        <header className="flex items-center gap-2 pt-5">
+          <Ball className="w-6 h-6 text-accent" />
           <span className="font-display text-[1.15rem] font-bold">Beach Volley</span>
         </header>
 
@@ -424,8 +425,8 @@ export default function PollScreen() {
   return (
     <main className="max-w-[460px] mx-auto px-5 pb-20">
       <header className="anim-rise flex items-center justify-between gap-3 pt-4">
-        <div className="flex items-center gap-2.5">
-          <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+        <div className="flex items-center gap-2">
+          <Ball className="w-6 h-6 text-accent" />
           <h1 className="font-display text-[1.3rem] font-bold">Beach Volley</h1>
         </div>
         <div className="flex items-center gap-2.5">

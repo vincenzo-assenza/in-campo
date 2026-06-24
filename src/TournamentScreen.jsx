@@ -9,6 +9,7 @@ import {
 } from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
 import { DEFAULT_CAPACITY, DEFAULT_COURTS, MAX_SCORE, VENUE, isAdmin } from './config.js';
+import { Ball } from './Ball.jsx';
 
 const btnPrimary =
   'font-semibold text-sm px-4 py-2.5 rounded-xl bg-night text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
@@ -296,8 +297,8 @@ export default function TournamentScreen({ date }) {
     <main className="max-w-[460px] mx-auto px-5 pb-20">
       <header className="anim-rise pt-4">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+          <div className="flex items-center gap-2">
+            <Ball className="w-6 h-6 text-accent" />
             <h1 className="font-display text-[1.3rem] font-bold">Torneo</h1>
           </div>
           <a className={btnOutline} href="?">
