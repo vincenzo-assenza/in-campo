@@ -332,7 +332,7 @@ export default function PollScreen() {
 
             <div className="flex flex-wrap gap-2.5 items-center mt-4">
               <button className={isIn(date) ? btnIn : btnPrimary} onClick={() => toggle(date)}>
-                {isIn(date) ? '✓ Ci sei · annulla' : 'Ci sono'}
+                {isIn(date) ? 'Confermato - Annulla' : 'Ci sono'}
               </button>
               {booked &&
                 (canStart ? (
