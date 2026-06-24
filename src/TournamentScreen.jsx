@@ -248,13 +248,26 @@ export default function TournamentScreen({ date }) {
       .upsert({ session_date: date, state: next, updated_at: new Date().toISOString() });
   }
 
+  // Vincoli per campo: min 4 (2vs2), max 12 (6vs6).
+  const minCourts = Math.max(1, Math.ceil(confirmed.length / 12)); // così nessun campo supera 12
+  const maxFeasibleCourts = Math.floor(confirmed.length / 4); // così ogni campo ha almeno 4
+  // Limita i campi richiesti all'intervallo sostenibile (e al tetto fisico di 5).
+  const clampCourts = (n) => {
+    const hi = Math.min(5, maxFeasibleCourts);
+    return Math.max(minCourts, Math.min(n, hi));
+  };
+
   // Genera turno 1 da zero (nessun turno precedente, archivio vuoto).
   const generate = () => {
-    const courts = makeTeamsAvoidingRepeats(confirmed, Number(courtsInput));
+    if (maxFeasibleCourts < 1) {
+      alert('Servono almeno 4 giocatori per un campo (2 vs 2).');
+      return;
+    }
+    const courts = makeTeamsAvoidingRepeats(confirmed, clampCourts(Number(courtsInput)));
     save({ turno: 1, round: 1, lastResults: null, courts, history: recordPairs({}, courts), historyBefore: {}, archive: [] });
   };
-  // Numero campi effettivo = ultima scelta dell'organizzatore in prenotazione.
-  const effectiveCourts = () => savedCourts ?? state.courts.length;
+  // Numero campi effettivo = scelta dell'organizzatore, limitata dai vincoli per campo.
+  const effectiveCourts = () => clampCourts(savedCourts ?? state.courts.length);
 
   // Rigenera: ri-estrae le squadre del SOLO turno corrente. Mantiene archivio,
   // numero di turno e storico precedente (usa historyBefore come baseline).
@@ -372,8 +385,17 @@ export default function TournamentScreen({ date }) {
               />
             </>
           )}
-          <div className="mt-4">
-            <button className={btnPrimary} onClick={generate}>
+          <p className="text-xs text-muted mt-3">
+            Da 4 (2vs2) a 12 (6vs6) giocatori per campo. Con {confirmed.length}{' '}
+            {confirmed.length === 1 ? 'presente' : 'presenti'}:{' '}
+            {maxFeasibleCourts < 1
+              ? 'servono almeno 4 giocatori.'
+              : `da ${minCourts} a ${Math.min(5, maxFeasibleCourts)} ${
+                  Math.min(5, maxFeasibleCourts) === 1 ? 'campo' : 'campi'
+                }.`}
+          </p>
+          <div className="mt-3">
+            <button className={btnPrimary} onClick={generate} disabled={maxFeasibleCourts < 1}>
               Genera formazioni
             </button>
           </div>
@@ -385,9 +407,9 @@ export default function TournamentScreen({ date }) {
 
       {state && (
         <>
-          {savedCourts != null && savedCourts !== state.courts.length && (
+          {savedCourts != null && effectiveCourts() !== state.courts.length && (
             <div className="mt-4 rounded-2xl border border-coral/40 bg-coral/5 p-4">
-              <p className="text-sm font-semibold">Campi aggiornati a {savedCourts}</p>
+              <p className="text-sm font-semibold">Campi aggiornati a {effectiveCourts()}</p>
               <p className="text-sm text-muted mt-0.5">
                 Le formazioni attuali sono su {state.courts.length} campi.
               </p>
@@ -395,10 +417,10 @@ export default function TournamentScreen({ date }) {
                 <button
                   className={`${btnPrimary} mt-3`}
                   onClick={() => {
-                    if (confirm(`Rigenerare le formazioni su ${savedCourts} campi? Il turno corrente verrà rifatto.`)) regenerate();
+                    if (confirm(`Rigenerare le formazioni su ${effectiveCourts()} campi? Il turno corrente verrà rifatto.`)) regenerate();
                   }}
                 >
-                  Rigenera su {savedCourts} campi
+                  Rigenera su {effectiveCourts()} campi
                 </button>
               )}
             </div>
