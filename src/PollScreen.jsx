@@ -308,7 +308,9 @@ export default function PollScreen() {
   }
 
   async function cancelBooking(date) {
-    if (!confirm('Annullare la prenotazione di questo giorno?')) return false;
+    if (!confirm('Annullare la prenotazione e svuotare gli iscritti di questo giorno?')) return false;
+    await supabase.from('signups').delete().eq('session_date', date);
+    await supabase.from('tournaments').delete().eq('session_date', date);
     await supabase.from('sessions').update({ status: 'open' }).eq('session_date', date);
     load();
     return true;
