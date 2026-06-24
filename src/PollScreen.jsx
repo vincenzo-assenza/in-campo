@@ -147,7 +147,7 @@ function DaysSettings({ weekdays, onSave, notify }) {
   };
   return (
     <details ref={ref} className="bg-surface border border-line rounded-2xl px-4 py-3 mt-4 shadow-[var(--shadow-card)]">
-      <summary className="cursor-pointer text-sm font-semibold text-muted">Giorni ricorrenti</summary>
+      <summary className="cursor-pointer text-sm font-semibold text-muted">Gestione Giorni</summary>
       <p className="text-xs text-muted mt-2">In quali giorni della settimana si propone di giocare.</p>
       <div className="flex flex-wrap gap-2 mt-3">
         {WD_LABELS.map(([label, d]) => (
