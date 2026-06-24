@@ -92,7 +92,7 @@ function Chip({ name, organizer, onRemove }) {
 }
 
 // Accesso organizzatore via PIN (sessione in localStorage, URL pulito).
-function AdminLogin() {
+function AdminLogin({ topClass = 'mt-12' }) {
   const [open, setOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [err, setErr] = useState(false);
@@ -103,13 +103,13 @@ function AdminLogin() {
   };
   if (!open) {
     return (
-      <button className="block mx-auto mt-12 text-xs text-faint underline" onClick={() => setOpen(true)}>
+      <button className={`block mx-auto ${topClass} text-xs text-faint underline`} onClick={() => setOpen(true)}>
         Sei l'organizzatore? Accedi
       </button>
     );
   }
   return (
-    <form onSubmit={submit} className="mt-12 flex flex-wrap items-center justify-center gap-2">
+    <form onSubmit={submit} className={`${topClass} flex flex-wrap items-center justify-center gap-2`}>
       <input
         type="password"
         value={pin}
@@ -337,51 +337,85 @@ export default function PollScreen() {
   // ---- Schermata nome (primo accesso) ----
   if (!name) {
     return (
-      <main className="max-w-[460px] mx-auto px-5 pb-16">
-        <div className="anim-rise bg-surface border border-line rounded-3xl p-6 mt-12 shadow-[var(--shadow-card)]">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-accent" />
-            <h1 className="font-display text-[1.4rem] font-bold">Beach Volley</h1>
+      <main className="min-h-screen max-w-[460px] mx-auto px-5 flex flex-col">
+        <header className="flex items-center gap-2.5 pt-5">
+          <span className="w-2.5 h-2.5 rounded-full bg-accent" />
+          <span className="font-display text-[1.15rem] font-bold">Beach Volley</span>
+        </header>
+
+        <section className="flex-1 flex flex-col justify-center py-10">
+          <h1 className="font-display text-[2.4rem] font-bold leading-[1.05] text-balance">
+            Le partite con gli amici, organizzate.
+          </h1>
+          <p className="text-muted mt-3 text-[1.02rem]">
+            Segna chi c'è, prenota il campo e gioca il torneo — tutto in un posto.
+          </p>
+
+          <div className="anim-rise bg-surface border border-line rounded-2xl p-5 mt-7 shadow-[var(--shadow-card)]">
+            {conflictName ? (
+              <>
+                <p>
+                  Esiste già un giocatore di nome <b>{conflictName}</b>. Sei tu?
+                </p>
+                <div className="flex flex-col gap-2 mt-4">
+                  <button className={btnPrimary} onClick={() => setName(conflictName)}>
+                    Sì, sono io
+                  </button>
+                  <button className={btnOutline} onClick={() => setConflictName(null)}>
+                    No, sono un altro
+                  </button>
+                </div>
+                <p className="text-muted text-sm mt-3">
+                  Se sei un altro giocatore, aggiungi il cognome o un'iniziale per distinguerti.
+                </p>
+              </>
+            ) : (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  submitName();
+                }}
+              >
+                <label className="text-sm font-semibold">Come ti chiami?</label>
+                <input
+                  className="mt-2 w-full px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent"
+                  value={nameInput}
+                  onChange={(e) => setNameInput(e.target.value)}
+                  placeholder="Il tuo nome"
+                  autoFocus
+                />
+                <button className={`${btnPrimary} mt-3`} type="submit" disabled={checking || !nameInput.trim()}>
+                  {checking ? 'Controllo…' : 'Entra'}
+                </button>
+              </form>
+            )}
           </div>
 
-          {conflictName ? (
-            <>
-              <p className="mt-4">
-                Esiste già un giocatore di nome <b>{conflictName}</b>. Sei tu?
-              </p>
-              <div className="flex flex-col gap-2 mt-4">
-                <button className={btnPrimary} onClick={() => setName(conflictName)}>
-                  Sì, sono io
-                </button>
-                <button className={btnOutline} onClick={() => setConflictName(null)}>
-                  No, sono un altro
-                </button>
-              </div>
-              <p className="text-muted text-sm mt-3">
-                Se sei un altro giocatore, aggiungi il cognome o un'iniziale per distinguerti.
-              </p>
-            </>
-          ) : (
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                submitName();
-              }}
-            >
-              <p className="text-muted mt-3">Come ti chiami?</p>
-              <input
-                className="mt-3 w-full px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent"
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                placeholder="Il tuo nome"
-                autoFocus
-              />
-              <button className={`${btnPrimary} mt-4`} type="submit" disabled={checking || !nameInput.trim()}>
-                {checking ? 'Controllo…' : 'Entra'}
-              </button>
-            </form>
-          )}
-        </div>
+          <ul className="mt-7 flex flex-col gap-3 text-sm text-muted">
+            {[
+              'Presenze settimanali con lista d\'attesa',
+              'Campi e formazioni generati in automatico',
+              'Tornei live con punteggi e turni',
+            ].map((f) => (
+              <li key={f} className="flex items-center gap-2.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-accent flex-none" />
+                {f}
+              </li>
+            ))}
+          </ul>
+        </section>
+
+        <footer className="py-6 flex flex-col items-center gap-3 text-center">
+          <a
+            href={VENUE.mapsUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="text-xs text-faint no-underline"
+          >
+            📍 {VENUE.name} · {VENUE.address}
+          </a>
+          <AdminLogin topClass="" />
+        </footer>
       </main>
     );
   }
@@ -590,7 +624,7 @@ export default function PollScreen() {
       {toast && (
         <div
           role="status"
-          className="anim-rise fixed left-1/2 -translate-x-1/2 bottom-6 z-50 bg-ink text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-[0_8px_30px_-8px_rgba(20,32,29,0.5)]"
+          className="anim-rise fixed left-1/2 -translate-x-1/2 bottom-6 z-50 bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-[0_8px_30px_-8px_rgba(15,118,110,0.6)]"
         >
           {toast}
         </div>
