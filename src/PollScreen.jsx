@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { supabase } from './supabase.js';
 import { weekCandidateDays, splitConfirmedWaitlist, parseStartTime, hasStarted } from './lib/poll.js';
 import {
@@ -134,12 +134,18 @@ const WD_LABELS = [
   ['Lun', 1], ['Mar', 2], ['Mer', 3], ['Gio', 4], ['Ven', 5], ['Sab', 6], ['Dom', 0],
 ];
 
-function DaysSettings({ weekdays, onSave }) {
+function DaysSettings({ weekdays, onSave, notify }) {
   const [sel, setSel] = useState(weekdays);
+  const ref = useRef(null);
   useEffect(() => setSel(weekdays), [weekdays.join(',')]);
   const toggle = (d) => setSel((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d]));
+  const save = async () => {
+    await onSave([...sel].sort((a, b) => a - b));
+    notify('Giorni salvati');
+    if (ref.current) ref.current.open = false;
+  };
   return (
-    <details className="bg-surface border border-line rounded-2xl px-4 py-3 mt-4 shadow-[var(--shadow-card)]">
+    <details ref={ref} className="bg-surface border border-line rounded-2xl px-4 py-3 mt-4 shadow-[var(--shadow-card)]">
       <summary className="cursor-pointer text-sm font-semibold text-muted">Giorni ricorrenti</summary>
       <p className="text-xs text-muted mt-2">In quali giorni della settimana si propone di giocare.</p>
       <div className="flex flex-wrap gap-2 mt-3">
@@ -156,18 +162,19 @@ function DaysSettings({ weekdays, onSave }) {
           </button>
         ))}
       </div>
-      <button className={`${btnSm} mt-3`} disabled={sel.length === 0} onClick={() => onSave([...sel].sort((a, b) => a - b))}>
+      <button className={`${btnSm} mt-3`} disabled={sel.length === 0} onClick={save}>
         Salva giorni
       </button>
     </details>
   );
 }
 
-function AdminBooking({ sess, onSave, onCancel }) {
+function AdminBooking({ sess, onSave, onCancel, notify }) {
   const [cap, setCap] = useState(String(sess?.capacity ?? DEFAULT_CAPACITY));
   const [courts, setCourts] = useState(String(sess?.courts ?? DEFAULT_COURTS));
   const [note, setNote] = useState(sess?.note ?? DEFAULT_TIME);
   const booked = sess?.status === 'booked';
+  const ref = useRef(null);
 
   useEffect(() => {
     if (sess?.capacity != null) setCap(String(sess.capacity));
@@ -175,15 +182,27 @@ function AdminBooking({ sess, onSave, onCancel }) {
     if (sess?.note != null) setNote(sess.note);
   }, [sess?.capacity, sess?.courts, sess?.note]);
 
-  const save = () =>
-    onSave({
+  const close = () => {
+    if (ref.current) ref.current.open = false;
+  };
+  const save = async () => {
+    await onSave({
       capacity: Math.max(1, Math.floor(Number(cap)) || DEFAULT_CAPACITY),
       courts: Math.min(5, Math.max(1, Math.floor(Number(courts)) || DEFAULT_COURTS)),
       note: note.trim() || DEFAULT_TIME,
     });
+    notify(booked ? 'Modifiche salvate' : 'Giorno prenotato');
+    close();
+  };
+  const cancel = async () => {
+    if (await onCancel()) {
+      notify('Prenotazione annullata');
+      close();
+    }
+  };
 
   return (
-    <details className="border-t border-line pt-3">
+    <details ref={ref} className="border-t border-line pt-3">
       <summary className="cursor-pointer text-sm font-semibold text-muted">Gestione organizzatore</summary>
       <p className="text-sm mt-3">
         Stato: <b className={booked ? 'text-accent' : 'text-muted'}>{booked ? 'Prenotato' : 'Non prenotato'}</b>
@@ -207,7 +226,7 @@ function AdminBooking({ sess, onSave, onCancel }) {
           {booked ? 'Salva modifiche' : 'Prenota e salva'}
         </button>
         {booked && (
-          <button className={`${btnSmOutline} text-accent`} onClick={onCancel}>
+          <button className={`${btnSmOutline} text-accent`} onClick={cancel}>
             Annulla prenotazione
           </button>
         )}
@@ -225,8 +244,16 @@ export default function PollScreen() {
   const [sessions, setSessions] = useState({});
   const [weekdays, setWeekdays] = useState(WEEKDAYS);
   const [organizerName, setOrganizerName] = useState(null);
+  const [toast, setToast] = useState(null);
   const days = weekCandidateDays(weekdays, new Date());
   const admin = isAdmin();
+  const notify = (msg) => setToast(msg);
+
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 2200);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   async function load() {
     const { data: st } = await supabase.from('settings').select('weekdays, organizer_name').eq('id', 1).maybeSingle();
@@ -280,9 +307,10 @@ export default function PollScreen() {
   }
 
   async function cancelBooking(date) {
-    if (!confirm('Annullare la prenotazione di questo giorno?')) return;
+    if (!confirm('Annullare la prenotazione di questo giorno?')) return false;
     await supabase.from('sessions').update({ status: 'open' }).eq('session_date', date);
     load();
+    return true;
   }
 
   async function removePlayer(date, playerName) {
@@ -413,7 +441,7 @@ export default function PollScreen() {
         <span className="ml-auto text-faint">›</span>
       </a>
 
-      {admin && <DaysSettings weekdays={weekdays} onSave={saveWeekdays} />}
+      {admin && <DaysSettings weekdays={weekdays} onSave={saveWeekdays} notify={notify} />}
 
       <div className="flex items-baseline justify-between mt-8 mb-3 mx-0.5">
         <span className="text-[0.72rem] font-semibold tracking-[0.09em] uppercase text-faint">
@@ -545,7 +573,12 @@ export default function PollScreen() {
               </div>
 
               {admin && (
-                <AdminBooking sess={sess} onSave={(v) => saveBooking(date, v)} onCancel={() => cancelBooking(date)} />
+                <AdminBooking
+                sess={sess}
+                onSave={(v) => saveBooking(date, v)}
+                onCancel={() => cancelBooking(date)}
+                notify={notify}
+              />
               )}
             </section>
           );
@@ -553,6 +586,15 @@ export default function PollScreen() {
       </div>
 
       {!admin && <AdminLogin />}
+
+      {toast && (
+        <div
+          role="status"
+          className="anim-rise fixed left-1/2 -translate-x-1/2 bottom-6 z-50 bg-ink text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-[0_8px_30px_-8px_rgba(20,32,29,0.5)]"
+        >
+          {toast}
+        </div>
+      )}
     </main>
   );
 }
