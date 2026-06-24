@@ -27,13 +27,13 @@ const weekRange = () => {
   return `${day(mon)}–${sun.toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}`;
 };
 
-function Chip({ name, onRemove }) {
+function Chip({ name, organizer, onRemove }) {
   const a = avatar(name);
   return (
     <span
       className={`inline-flex items-center gap-1.5 bg-[#F1F7F5] border border-line rounded-full pl-1 py-1 text-sm font-semibold ${
         onRemove ? 'pr-1' : 'pr-2.5'
-      }`}
+      } ${organizer ? 'ring-1 ring-sun' : ''}`}
     >
       <span
         className="grid place-items-center w-5 h-5 rounded-full text-[0.66rem] font-extrabold"
@@ -41,6 +41,7 @@ function Chip({ name, onRemove }) {
       >
         {initials(name)}
       </span>
+      {organizer && <span title="Organizzatore">👑</span>}
       {name}
       {onRemove && (
         <button
@@ -163,14 +164,16 @@ export default function PollScreen() {
   const [signups, setSignups] = useState([]); // tutte le righe dei giorni candidati
   const [sessions, setSessions] = useState({}); // session_date -> row
   const [weekdays, setWeekdays] = useState(WEEKDAYS); // giorni ricorrenti (da settings)
+  const [organizerName, setOrganizerName] = useState(null); // nome organizzatore (badge 👑)
   const days = weekCandidateDays(weekdays, new Date());
   const admin = isAdmin();
   const adminQS = admin ? `&admin=${new URLSearchParams(window.location.search).get('admin')}` : '';
 
   async function load() {
-    const { data: st } = await supabase.from('settings').select('weekdays').eq('id', 1).maybeSingle();
+    const { data: st } = await supabase.from('settings').select('weekdays, organizer_name').eq('id', 1).maybeSingle();
     const wd = st?.weekdays ?? WEEKDAYS;
     setWeekdays(wd);
+    setOrganizerName(st?.organizer_name ?? null);
     const ds = weekCandidateDays(wd, new Date());
     const { data: su } = await supabase.from('signups').select('*').in('session_date', ds);
     setSignups(su || []);
@@ -191,7 +194,12 @@ export default function PollScreen() {
   }, []);
 
   async function saveWeekdays(wd) {
-    await supabase.from('settings').upsert({ id: 1, weekdays: wd });
+    await supabase.from('settings').update({ weekdays: wd }).eq('id', 1);
+    load();
+  }
+
+  async function claimOrganizer() {
+    await supabase.from('settings').update({ organizer_name: name }).eq('id', 1);
     load();
   }
 
@@ -320,6 +328,22 @@ export default function PollScreen() {
               cambia
             </button>
           </div>
+          {admin && (
+            <div className="mt-2">
+              {organizerName === name ? (
+                <span className="inline-flex items-center gap-1 rounded-full bg-white/25 px-3 py-1 text-sm font-bold">
+                  👑 Organizzatore
+                </span>
+              ) : (
+                <button
+                  className="inline-flex items-center gap-1 rounded-full bg-white/25 px-3 py-1 text-sm font-semibold underline"
+                  onClick={claimOrganizer}
+                >
+                  Sono io l'organizzatore
+                </button>
+              )}
+            </div>
+          )}
         </div>
       </header>
 
@@ -402,6 +426,7 @@ export default function PollScreen() {
                   <Chip
                     key={s.player_name}
                     name={s.player_name}
+                    organizer={s.player_name === organizerName}
                     onRemove={admin ? () => removePlayer(date, s.player_name) : undefined}
                   />
                 ))}
@@ -419,7 +444,12 @@ export default function PollScreen() {
                 {admin ? (
                   <div className="flex flex-wrap gap-1.5 mt-2">
                     {waitlist.map((s) => (
-                      <Chip key={s.player_name} name={s.player_name} onRemove={() => removePlayer(date, s.player_name)} />
+                      <Chip
+                        key={s.player_name}
+                        name={s.player_name}
+                        organizer={s.player_name === organizerName}
+                        onRemove={() => removePlayer(date, s.player_name)}
+                      />
                     ))}
                   </div>
                 ) : (

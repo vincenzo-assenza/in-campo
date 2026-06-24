@@ -46,11 +46,13 @@ const CHIP_TONES = {
   win: 'bg-winbg text-winink', // vincente su card bianca (archivio)
 };
 
-function PlayerChip({ name, tone = 'plain' }) {
+function PlayerChip({ name, tone = 'plain', organizer }) {
   const a = avatar(name);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-sm font-medium ${CHIP_TONES[tone]}`}
+      className={`inline-flex items-center gap-1.5 rounded-full py-0.5 pl-0.5 pr-2.5 text-sm font-medium ${CHIP_TONES[tone]} ${
+        organizer ? 'ring-1 ring-sun' : ''
+      }`}
     >
       <span
         className="grid place-items-center w-5 h-5 rounded-full text-[0.6rem] font-extrabold"
@@ -58,12 +60,13 @@ function PlayerChip({ name, tone = 'plain' }) {
       >
         {initials(name)}
       </span>
+      {organizer && <span title="Organizzatore">👑</span>}
       {name}
     </span>
   );
 }
 
-function TeamRow({ team, score, win, onScore, admin }) {
+function TeamRow({ team, score, win, onScore, admin, organizerName }) {
   return (
     <div
       className={`flex items-center justify-between gap-2.5 rounded-xl border p-2.5 transition ${
@@ -74,7 +77,7 @@ function TeamRow({ team, score, win, onScore, admin }) {
         {team.move && <MoveBadge move={team.move} from={team.fromCourt} />}
         <div className="flex flex-wrap gap-1.5">
           {team.players.map((p) => (
-            <PlayerChip key={p} name={p} tone={win ? 'onGreen' : 'plain'} />
+            <PlayerChip key={p} name={p} tone={win ? 'onGreen' : 'plain'} organizer={p === organizerName} />
           ))}
         </div>
       </div>
@@ -212,6 +215,7 @@ export default function TournamentScreen({ date }) {
   const [courtsInput, setCourtsInput] = useState(DEFAULT_COURTS);
   const [savedCourts, setSavedCourts] = useState(null); // campi decisi in prenotazione
   const [editCourts, setEditCourts] = useState(false);
+  const [organizerName, setOrganizerName] = useState(null);
   const admin = isAdmin();
   const adminParam = new URLSearchParams(window.location.search).get('admin');
 
@@ -225,6 +229,8 @@ export default function TournamentScreen({ date }) {
     // Campi decisi dall'organizzatore in prenotazione (finché il torneo non è generato).
     setSavedCourts(se?.courts ?? null);
     if (!t?.state && se?.courts) setCourtsInput(se.courts);
+    const { data: st } = await supabase.from('settings').select('organizer_name').eq('id', 1).maybeSingle();
+    setOrganizerName(st?.organizer_name ?? null);
   }
 
   useEffect(() => {
@@ -494,6 +500,7 @@ export default function TournamentScreen({ date }) {
                   score={c.scoreA}
                   win={c.scoreA != null && c.scoreB != null && c.scoreA > c.scoreB}
                   admin={admin}
+                  organizerName={organizerName}
                   onScore={(v) => setScore(i, 'A', v)}
                 />
                 <div className="text-center font-extrabold text-[0.7rem] tracking-[0.1em] text-muted my-1.5 uppercase">
@@ -504,6 +511,7 @@ export default function TournamentScreen({ date }) {
                   score={c.scoreB}
                   win={c.scoreA != null && c.scoreB != null && c.scoreB > c.scoreA}
                   admin={admin}
+                  organizerName={organizerName}
                   onScore={(v) => setScore(i, 'B', v)}
                 />
               </section>

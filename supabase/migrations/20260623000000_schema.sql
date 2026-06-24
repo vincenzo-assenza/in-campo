@@ -22,8 +22,9 @@ create table tournaments (
 
 -- Impostazioni globali (riga unica): giorni ricorrenti scelti dall'organizzatore.
 create table settings (
-  id       smallint primary key default 1,
-  weekdays int[] not null default '{2,4,6}', -- 0=Dom..6=Sab → mar/gio/sab
+  id             smallint primary key default 1,
+  weekdays       int[] not null default '{2,4,6}', -- 0=Dom..6=Sab → mar/gio/sab
+  organizer_name text, -- nome dell'organizzatore (badge 👑)
   constraint settings_singleton check (id = 1)
 );
 insert into settings (id) values (1) on conflict (id) do nothing;
