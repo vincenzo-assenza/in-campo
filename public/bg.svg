@@ -1,20 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" preserveAspectRatio="xMidYMax slice">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 820" preserveAspectRatio="xMidYMax slice">
   <defs>
     <pattern id="net" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
       <path d="M0 0V22M0 0H22" stroke="#0F766E" stroke-opacity="0.13" stroke-width="1" fill="none"/>
     </pattern>
   </defs>
 
-  <!-- sabbia: dune morbide -->
-  <path d="M0,250 C220,212 520,298 800,242 L800,440 L0,440 Z" fill="#D9A441" opacity="0.07"/>
-  <path d="M0,322 C260,292 540,360 800,312 L800,440 L0,440 Z" fill="#9A6B3F" opacity="0.06"/>
+  <!-- sabbia: dune morbide (in fondo) -->
+  <path d="M0,650 C220,612 520,698 800,642 L800,820 L0,820 Z" fill="#D9A441" opacity="0.07"/>
+  <path d="M0,720 C260,690 540,758 800,710 L800,820 L0,820 Z" fill="#9A6B3F" opacity="0.06"/>
 
-  <!-- rete stilizzata -->
-  <rect x="170" y="168" width="460" height="56" fill="url(#net)"/>
+  <!-- rete stilizzata (dietro al footer) -->
+  <rect x="170" y="556" width="460" height="56" fill="url(#net)"/>
   <g stroke="#0F766E" stroke-opacity="0.2" stroke-width="1.6" stroke-linecap="round" fill="none">
-    <line x1="170" y1="150" x2="170" y2="250"/>
-    <line x1="630" y1="150" x2="630" y2="250"/>
-    <line x1="170" y1="168" x2="630" y2="168"/>
-    <line x1="170" y1="224" x2="630" y2="224"/>
+    <line x1="170" y1="538" x2="170" y2="640"/>
+    <line x1="630" y1="538" x2="630" y2="640"/>
+    <line x1="170" y1="556" x2="630" y2="556"/>
+    <line x1="170" y1="612" x2="630" y2="612"/>
   </g>
 </svg>
