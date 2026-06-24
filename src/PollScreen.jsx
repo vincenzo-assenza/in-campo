@@ -55,6 +55,45 @@ function Chip({ name, onRemove }) {
   );
 }
 
+// Giorni della settimana in ordine Lun..Dom con il relativo numero JS (0=Dom).
+const WD_LABELS = [
+  ['Lun', 1], ['Mar', 2], ['Mer', 3], ['Gio', 4], ['Ven', 5], ['Sab', 6], ['Dom', 0],
+];
+
+// Pannello organizzatore: scelta dei giorni ricorrenti (validi per tutti).
+function DaysSettings({ weekdays, onSave }) {
+  const [sel, setSel] = useState(weekdays);
+  useEffect(() => setSel(weekdays), [weekdays.join(',')]);
+  const toggle = (d) => setSel((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d]));
+  return (
+    <details className="anim-rise bg-surface border border-line rounded-2xl p-4 mt-4 shadow-[var(--shadow-card)]">
+      <summary className="cursor-pointer text-sm font-semibold text-muted">⚙️ Giorni ricorrenti</summary>
+      <p className="text-xs text-muted mt-2">In quali giorni della settimana si propone di giocare.</p>
+      <div className="flex flex-wrap gap-2 mt-3">
+        {WD_LABELS.map(([label, d]) => (
+          <button
+            key={d}
+            type="button"
+            onClick={() => toggle(d)}
+            className={`px-3 py-2 rounded-full border text-sm font-semibold transition ${
+              sel.includes(d) ? 'bg-coral text-white border-coral' : 'bg-surface text-ink border-line'
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <button
+        className={`${btnPrimary} mt-3`}
+        disabled={sel.length === 0}
+        onClick={() => onSave([...sel].sort((a, b) => a - b))}
+      >
+        Salva giorni
+      </button>
+    </details>
+  );
+}
+
 // Pannello organizzatore: capienza (→ lista d'attesa) e numero campi (→ torneo).
 function AdminBooking({ sess, onSave, onCancel }) {
   const [cap, setCap] = useState(String(sess?.capacity ?? DEFAULT_CAPACITY));
@@ -123,14 +162,19 @@ export default function PollScreen() {
   const [checking, setChecking] = useState(false);
   const [signups, setSignups] = useState([]); // tutte le righe dei giorni candidati
   const [sessions, setSessions] = useState({}); // session_date -> row
-  const days = weekCandidateDays(WEEKDAYS, new Date());
+  const [weekdays, setWeekdays] = useState(WEEKDAYS); // giorni ricorrenti (da settings)
+  const days = weekCandidateDays(weekdays, new Date());
   const admin = isAdmin();
   const adminQS = admin ? `&admin=${new URLSearchParams(window.location.search).get('admin')}` : '';
 
   async function load() {
-    const { data: su } = await supabase.from('signups').select('*').in('session_date', days);
+    const { data: st } = await supabase.from('settings').select('weekdays').eq('id', 1).maybeSingle();
+    const wd = st?.weekdays ?? WEEKDAYS;
+    setWeekdays(wd);
+    const ds = weekCandidateDays(wd, new Date());
+    const { data: su } = await supabase.from('signups').select('*').in('session_date', ds);
     setSignups(su || []);
-    const { data: se } = await supabase.from('sessions').select('*').in('session_date', days);
+    const { data: se } = await supabase.from('sessions').select('*').in('session_date', ds);
     setSessions(Object.fromEntries((se || []).map((r) => [r.session_date, r])));
   }
 
@@ -140,10 +184,16 @@ export default function PollScreen() {
       .channel('poll')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'signups' }, load)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, load)
       .subscribe();
     return () => supabase.removeChannel(ch);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  async function saveWeekdays(wd) {
+    await supabase.from('settings').upsert({ id: 1, weekdays: wd });
+    load();
+  }
 
   const isIn = (date) => signups.some((s) => s.session_date === date && s.player_name === name);
 
@@ -272,6 +322,8 @@ export default function PollScreen() {
           </div>
         </div>
       </header>
+
+      {admin && <DaysSettings weekdays={weekdays} onSave={saveWeekdays} />}
 
       <div className="flex items-baseline justify-between mt-7 mx-1">
         <span className="text-xs font-bold tracking-[0.14em] uppercase text-muted">Giorni candidati</span>
