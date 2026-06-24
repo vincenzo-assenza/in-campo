@@ -392,7 +392,7 @@ export default function PollScreen() {
                     autoFocus
                   />
                   <input
-                    className="w-20 px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent text-center uppercase"
+                    className="w-20 px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent text-center uppercase placeholder:normal-case"
                     value={surnameInput}
                     onChange={(e) => setSurnameInput(e.target.value)}
                     placeholder="Cogn."
