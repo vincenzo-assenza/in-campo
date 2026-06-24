@@ -1,21 +1,31 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1200" preserveAspectRatio="xMidYMax slice">
-  <defs>
-    <radialGradient id="sun" cx="80%" cy="12%" r="46%">
-      <stop offset="0" stop-color="#0F766E" stop-opacity="0.18"/>
-      <stop offset="0.55" stop-color="#0F766E" stop-opacity="0.05"/>
-      <stop offset="1" stop-color="#0F766E" stop-opacity="0"/>
-    </radialGradient>
-    <linearGradient id="wave1" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#0F766E" stop-opacity="0.12"/>
-      <stop offset="1" stop-color="#0F766E" stop-opacity="0.05"/>
-    </linearGradient>
-  </defs>
+  <!-- dune / onde soffuse -->
+  <path d="M0,1030 C260,985 520,1075 800,1005 L800,1200 L0,1200 Z" fill="#9A6B3F" opacity="0.05"/>
+  <path d="M0,1105 C300,1075 540,1140 800,1095 L800,1200 L0,1200 Z" fill="#0F766E" opacity="0.05"/>
 
-  <!-- alone sole in alto a destra -->
-  <rect width="800" height="1200" fill="url(#sun)"/>
+  <!-- campo in prospettiva -->
+  <g stroke="#0F766E" stroke-opacity="0.15" stroke-width="2" fill="none" stroke-linejoin="round">
+    <polygon points="300,1018 500,1018 648,1185 152,1185"/>
+    <line x1="400" y1="1018" x2="400" y2="1185"/>
+  </g>
 
-  <!-- dune / onde soffuse in basso, sovrapposte per profondità -->
-  <path d="M0,960 C220,890 420,1010 800,920 L800,1200 L0,1200 Z" fill="url(#wave1)"/>
-  <path d="M0,1050 C260,1000 520,1085 800,1010 L800,1200 L0,1200 Z" fill="#0F766E" opacity="0.07"/>
-  <path d="M0,1125 C300,1085 540,1150 800,1100 L800,1200 L0,1200 Z" fill="#9A6B3F" opacity="0.06"/>
+  <!-- rete sulla linea di fondo -->
+  <g stroke="#0F766E" stroke-opacity="0.22" stroke-width="1.4" stroke-linecap="round">
+    <line x1="276" y1="1018" x2="276" y2="980"/>
+    <line x1="524" y1="1018" x2="524" y2="980"/>
+    <line x1="276" y1="983" x2="524" y2="983"/>
+    <line x1="276" y1="1018" x2="524" y2="1018"/>
+    <line x1="276" y1="1000" x2="524" y2="1000"/>
+  </g>
+  <g stroke="#0F766E" stroke-opacity="0.14" stroke-width="1">
+    <line x1="300" y1="983" x2="300" y2="1018"/>
+    <line x1="325" y1="983" x2="325" y2="1018"/>
+    <line x1="350" y1="983" x2="350" y2="1018"/>
+    <line x1="375" y1="983" x2="375" y2="1018"/>
+    <line x1="400" y1="983" x2="400" y2="1018"/>
+    <line x1="425" y1="983" x2="425" y2="1018"/>
+    <line x1="450" y1="983" x2="450" y2="1018"/>
+    <line x1="475" y1="983" x2="475" y2="1018"/>
+    <line x1="500" y1="983" x2="500" y2="1018"/>
+  </g>
 </svg>

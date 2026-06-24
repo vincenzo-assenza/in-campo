@@ -28,11 +28,11 @@
     font-family: var(--font-sans);
     color: var(--color-ink);
     background-color: var(--color-ground);
-    background-image: url("/bg.svg"), linear-gradient(180deg, #f6f8f7 0%, #eef1f0 100%);
-    background-size: cover, auto;
-    background-position: center bottom, center;
-    background-repeat: no-repeat;
-    background-attachment: fixed;
+    background-image: url("/sun.svg"), url("/bg.svg"), linear-gradient(180deg, #f6f8f7 0%, #eef1f0 100%);
+    background-size: 200px auto, cover, auto;
+    background-position: top -24px right -28px, center bottom, center;
+    background-repeat: no-repeat, no-repeat, no-repeat;
+    background-attachment: fixed, fixed, fixed;
     min-height: 100dvh;
     -webkit-font-smoothing: antialiased;
     overflow-x: hidden;
