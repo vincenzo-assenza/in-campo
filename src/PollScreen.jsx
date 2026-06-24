@@ -1,7 +1,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from './supabase.js';
 import { weekCandidateDays, splitConfirmedWaitlist, parseStartTime, hasStarted } from './lib/poll.js';
-import { WEEKDAYS, DEFAULT_CAPACITY, DEFAULT_COURTS, DEFAULT_TIME, DEFAULT_START, VENUE, isAdmin } from './config.js';
+import {
+  WEEKDAYS,
+  DEFAULT_CAPACITY,
+  DEFAULT_COURTS,
+  DEFAULT_TIME,
+  DEFAULT_START,
+  VENUE,
+  isAdmin,
+  loginAdmin,
+  logoutAdmin,
+} from './config.js';
 import { useName } from './useName.js';
 import { initials, avatar } from './ui.js';
 
@@ -53,6 +63,44 @@ function Chip({ name, organizer, onRemove }) {
         </button>
       )}
     </span>
+  );
+}
+
+// Accesso organizzatore via PIN (sessione in localStorage, URL pulito).
+function AdminLogin() {
+  const [open, setOpen] = useState(false);
+  const [pin, setPin] = useState('');
+  const [err, setErr] = useState(false);
+  const submit = (e) => {
+    e.preventDefault();
+    if (loginAdmin(pin)) window.location.reload();
+    else setErr(true);
+  };
+  if (!open) {
+    return (
+      <button className="block mx-auto mt-10 text-xs text-muted underline" onClick={() => setOpen(true)}>
+        Sei l'organizzatore? Accedi
+      </button>
+    );
+  }
+  return (
+    <form onSubmit={submit} className="mt-10 flex flex-wrap items-center justify-center gap-2">
+      <input
+        type="password"
+        value={pin}
+        onChange={(e) => {
+          setPin(e.target.value);
+          setErr(false);
+        }}
+        placeholder="PIN organizzatore"
+        autoFocus
+        className="px-3 py-2 rounded-lg border border-line bg-surface outline-none focus:border-coral text-sm"
+      />
+      <button className={`${btnBase} border-coral bg-coral text-white`} type="submit">
+        Accedi
+      </button>
+      {err && <span className="w-full text-center text-coral text-xs">PIN errato</span>}
+    </form>
   );
 }
 
@@ -167,7 +215,6 @@ export default function PollScreen() {
   const [organizerName, setOrganizerName] = useState(null); // nome organizzatore (badge 👑)
   const days = weekCandidateDays(weekdays, new Date());
   const admin = isAdmin();
-  const adminQS = admin ? `&admin=${new URLSearchParams(window.location.search).get('admin')}` : '';
 
   async function load() {
     const { data: st } = await supabase.from('settings').select('weekdays, organizer_name').eq('id', 1).maybeSingle();
@@ -329,7 +376,7 @@ export default function PollScreen() {
             </button>
           </div>
           {admin && (
-            <div className="mt-2">
+            <div className="mt-2 flex flex-wrap items-center gap-2">
               {organizerName === name ? (
                 <span className="inline-flex items-center gap-1 rounded-full bg-white/25 px-3 py-1 text-sm font-bold">
                   👑 Organizzatore
@@ -342,6 +389,15 @@ export default function PollScreen() {
                   Sono io l'organizzatore
                 </button>
               )}
+              <button
+                className="text-xs underline opacity-90"
+                onClick={() => {
+                  logoutAdmin();
+                  window.location.reload();
+                }}
+              >
+                Esci da organizzatore
+              </button>
             </div>
           )}
         </div>
@@ -485,7 +541,7 @@ export default function PollScreen() {
               )}
               {booked &&
                 (canStart ? (
-                  <a className={btnGo} href={`?date=${date}&view=tournament${adminQS}`}>
+                  <a className={btnGo} href={`?date=${date}&view=tournament`}>
                     Inizia Torneo →
                   </a>
                 ) : (
@@ -501,6 +557,8 @@ export default function PollScreen() {
           </section>
         );
       })}
+
+      {!admin && <AdminLogin />}
     </main>
   );
 }

@@ -21,7 +21,7 @@ Prenotazione presenze settimanali + torneo live king-of-the-court, per un gruppo
 ## Uso
 
 - **Link normale** → sondaggio: scrivi il nome (salvato nel browser), spunta i giorni, vedi confermati e lista d'attesa in tempo reale.
-- **Organizzatore**: apri con `?admin=<VITE_ADMIN_TOKEN>` per marcare un giorno come prenotato e gestire il torneo (genera formazioni, segna i vincitori, avanza la scala, rimescola).
+- **Organizzatore**: in fondo al sondaggio "Sei l'organizzatore? Accedi" → inserisci il PIN (`VITE_ADMIN_TOKEN`). L'accesso resta salvato nel browser (logout dall'header). Da organizzatore: scegli i giorni ricorrenti, prenota/annulla, imposta capienza/campi, gestisci il torneo (genera formazioni, inserisci i punteggi, Round 2, nuovo turno).
 - **Torneo**: dalla card di un giorno prenotato → "Vai al torneo". I giocatori vedono squadra/campo dal vivo; l'organizzatore fa girare la scala king-of-the-court.
 
 ## Configurazione

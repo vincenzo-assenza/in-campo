@@ -217,7 +217,6 @@ export default function TournamentScreen({ date }) {
   const [editCourts, setEditCourts] = useState(false);
   const [organizerName, setOrganizerName] = useState(null);
   const admin = isAdmin();
-  const adminParam = new URLSearchParams(window.location.search).get('admin');
 
   async function load() {
     const { data: su } = await supabase.from('signups').select('*').eq('session_date', date);
@@ -347,7 +346,7 @@ export default function TournamentScreen({ date }) {
           style={{ background: 'radial-gradient(circle, rgba(255,194,51,0.25), transparent 65%)' }}
         />
         <div className="relative">
-          <a className="text-white/80 text-sm no-underline" href={`?${adminParam ? 'admin=' + adminParam : ''}`}>
+          <a className="text-white/80 text-sm no-underline" href="?">
             ← Sondaggio
           </a>
           <h1 className="font-display text-4xl mt-2.5 leading-none">Torneo</h1>

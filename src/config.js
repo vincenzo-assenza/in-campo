@@ -13,8 +13,20 @@ export const VENUE = {
   mapsUrl: 'https://maps.google.com/?q=Sporting+Club+Mestre+Via+Terraglietto+21%2FM+Mestre',
 };
 
-// ponytail: token in URL, barriera "tra amici", non un vero segreto
+// Accesso organizzatore: PIN confrontato lato client, sessione in localStorage.
+// ponytail: barriera "tra amici" (il PIN è nel bundle); sicurezza vera = Supabase Auth.
 export function isAdmin() {
-  const token = new URLSearchParams(window.location.search).get('admin');
-  return Boolean(ADMIN_TOKEN) && token === ADMIN_TOKEN;
+  return Boolean(ADMIN_TOKEN) && localStorage.getItem('bv_admin') === ADMIN_TOKEN;
+}
+
+export function loginAdmin(pin) {
+  if (ADMIN_TOKEN && pin === ADMIN_TOKEN) {
+    localStorage.setItem('bv_admin', pin);
+    return true;
+  }
+  return false;
+}
+
+export function logoutAdmin() {
+  localStorage.removeItem('bv_admin');
 }
