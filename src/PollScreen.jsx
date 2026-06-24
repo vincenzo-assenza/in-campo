@@ -294,6 +294,10 @@ export default function PollScreen() {
         const startTime = parseStartTime(sess?.note, DEFAULT_START);
         // L'organizzatore può entrare prima (per preparare le formazioni); i giocatori dall'orario di inizio.
         const canStart = booked && (admin || hasStarted(date, startTime, new Date()));
+        // Stato del giocatore corrente su questo giorno.
+        const userConfirmed = confirmed.some((s) => s.player_name === name);
+        const waitPos = waitlist.findIndex((s) => s.player_name === name); // -1 se non in attesa
+        const full = confirmed.length >= cap;
 
         return (
           <section
@@ -375,13 +379,23 @@ export default function PollScreen() {
             <div className="flex flex-wrap gap-2.5 items-center mt-4">
               {isIn(date) ? (
                 <>
-                  <span className="inline-flex items-center gap-1.5 font-semibold text-sm px-4 py-3 rounded-xl bg-winbg text-win border border-win/30">
-                    ✓ Confermato
-                  </span>
+                  {userConfirmed ? (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-sm px-4 py-3 rounded-xl bg-winbg text-win border border-win/30">
+                      ✓ Confermato
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 font-semibold text-sm px-4 py-3 rounded-xl bg-sun/20 text-ink border border-sun/50">
+                      🕓 In lista d'attesa · pos. {waitPos + 1}
+                    </span>
+                  )}
                   <button className={`${btnBase} border-line bg-surface text-coral`} onClick={() => toggle(date)}>
                     Annulla
                   </button>
                 </>
+              ) : full ? (
+                <button className={`${btnBase} border-sun/50 bg-sun/15 text-ink`} onClick={() => toggle(date)}>
+                  Mettiti in lista d'attesa
+                </button>
               ) : (
                 <button className={btnPrimary} onClick={() => toggle(date)}>
                   Ci sono
