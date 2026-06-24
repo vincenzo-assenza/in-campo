@@ -1,15 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" preserveAspectRatio="xMidYMax slice">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 440" preserveAspectRatio="xMidYMax slice">
   <defs>
-    <radialGradient id="b1" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#0F766E" stop-opacity="0.16"/>
-      <stop offset="1" stop-color="#0F766E" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="b2" cx="50%" cy="50%" r="50%">
-      <stop offset="0" stop-color="#D99A3C" stop-opacity="0.13"/>
-      <stop offset="1" stop-color="#D99A3C" stop-opacity="0"/>
-    </radialGradient>
+    <pattern id="net" width="22" height="22" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <path d="M0 0V22M0 0H22" stroke="#0F766E" stroke-opacity="0.13" stroke-width="1" fill="none"/>
+    </pattern>
   </defs>
-  <ellipse cx="110" cy="900" rx="430" ry="360" fill="url(#b1)"/>
-  <ellipse cx="780" cy="780" rx="360" ry="320" fill="url(#b2)"/>
-  <ellipse cx="430" cy="1060" rx="520" ry="300" fill="url(#b1)"/>
+
+  <!-- sabbia: dune morbide -->
+  <path d="M0,250 C220,212 520,298 800,242 L800,440 L0,440 Z" fill="#D9A441" opacity="0.07"/>
+  <path d="M0,322 C260,292 540,360 800,312 L800,440 L0,440 Z" fill="#9A6B3F" opacity="0.06"/>
+
+  <!-- rete stilizzata -->
+  <rect x="170" y="168" width="460" height="56" fill="url(#net)"/>
+  <g stroke="#0F766E" stroke-opacity="0.2" stroke-width="1.6" stroke-linecap="round" fill="none">
+    <line x1="170" y1="150" x2="170" y2="250"/>
+    <line x1="630" y1="150" x2="630" y2="250"/>
+    <line x1="170" y1="168" x2="630" y2="168"/>
+    <line x1="170" y1="224" x2="630" y2="224"/>
+  </g>
 </svg>
