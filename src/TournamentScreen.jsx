@@ -6,16 +6,67 @@ import {
   roundOneResults,
   summarizeRound,
   recordPairs,
+  playerStandings,
 } from './lib/tournament.js';
 import { splitConfirmedWaitlist } from './lib/poll.js';
-import { DEFAULT_CAPACITY, DEFAULT_COURTS, MAX_SCORE, VENUE, isAdmin } from './config.js';
+import { DEFAULT_CAPACITY, DEFAULT_COURTS, MAX_SCORE, DEFAULT_VENUE, venueFrom, isAdmin } from './config.js';
 import { Ball } from './Ball.jsx';
 
 const btnPrimary =
-  'font-semibold text-sm px-4 py-2.5 rounded-xl bg-night text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
+  'font-display uppercase tracking-wide font-bold text-sm px-4 py-2.5 rounded-xl bg-accent text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
 const btnOutline =
-  'font-semibold text-sm px-4 py-2.5 rounded-xl border border-line2 bg-surface text-ink no-underline transition active:scale-[.99]';
-const btnGhost = 'font-semibold text-sm px-4 py-2.5 rounded-xl text-accent transition active:scale-[.99]';
+  'font-display uppercase tracking-wide font-bold text-sm px-4 py-2.5 rounded-xl border-2 border-line2 bg-surface text-ink no-underline transition active:scale-[.99]';
+
+const fmtDate = (iso) => {
+  const s = new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'short', day: 'numeric', month: 'short' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+};
+
+// Nei riepiloghi: "Mario Rossi" → "Mario R." per non affollare.
+const shortName = (p) => {
+  const parts = p.trim().split(/\s+/);
+  return parts.length >= 2 ? `${parts[0]} ${parts[1][0]}.` : p;
+};
+const teamShort = (players) => players.map(shortName).join(', ');
+
+const CourtBadge = ({ n }) => (
+  <span className="eyebrow text-[0.62rem] text-court bg-courtsoft rounded px-1.5 py-0.5 shrink-0">Campo {n}</span>
+);
+
+// Classifica giocatori a tutta larghezza, in fondo alla pagina.
+const MEDALS = ['🥇', '🥈', '🥉'];
+function PlayerRanking({ players, final }) {
+  if (players.length < 2) return null;
+  return (
+    <section className="bg-surface border border-line rounded-2xl p-4 mt-6 shadow-[var(--shadow-card)]">
+      <h2 className="font-display uppercase tracking-wide text-lg font-extrabold">
+        {final ? '🏁 Classifica finale' : 'Classifica giocatori'}
+      </h2>
+      <p className="text-[0.7rem] text-faint mb-3">
+        {final ? 'Torneo concluso · classifica definitiva.' : 'Punti = turni vinti dal giocatore.'}
+      </p>
+      <div className="flex items-center gap-3 px-1 pb-1.5 eyebrow text-[0.58rem] text-faint">
+        <span className="w-6 text-center">#</span>
+        <span className="flex-1">Giocatore</span>
+        <span className="w-16 text-right">Giocate</span>
+        <span className="w-12 text-right">Punti</span>
+      </div>
+      <ol className="divide-y divide-line">
+        {players.map((p, i) => (
+          <li
+            key={p.player}
+            className={`flex items-center gap-3 px-1 py-2 ${i === 0 ? 'bg-accentsoft rounded-lg' : ''}`}
+          >
+            <span className="w-6 text-center font-display font-bold tabular-nums text-faint">{MEDALS[i] || i + 1}</span>
+            <span className="flex-1 min-w-0 truncate font-medium">{p.player}</span>
+            <span className="w-16 text-right text-xs text-muted tabular-nums">{p.played}</span>
+            <span className="w-12 text-right font-display font-bold tabular-nums text-accent">{p.wins}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}
 
 function Stat({ n, k }) {
   return (
@@ -118,21 +169,21 @@ function MatchResult({ r }) {
   const sBottom = decided ? r.scoreLoser : r.scoreB;
   return (
     <div className="rounded-lg border border-line px-3 py-2.5">
-      <div className="text-[0.62rem] font-semibold uppercase tracking-[0.1em] text-faint mb-1.5">
-        Campo {r.court + 1}
-        {!decided && ' · non conclusa'}
+      <div className="flex items-center gap-2 mb-1.5">
+        <CourtBadge n={r.court + 1} />
+        {!decided && <span className="text-[0.62rem] text-faint">non conclusa</span>}
       </div>
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-medium min-w-0">
+        <div className="text-sm font-medium min-w-0 truncate">
           {decided && <span className="text-accent mr-1">✓</span>}
-          {top.join(', ')}
+          {teamShort(top)}
         </div>
         <span className={`font-display text-base font-bold tabular-nums shrink-0 ${decided ? 'text-accent' : 'text-faint'}`}>
           {sTop ?? '–'}
         </span>
       </div>
-      <div className="flex items-center justify-between gap-3 mt-1.5">
-        <div className="text-sm text-muted min-w-0">{bottom.join(', ')}</div>
+      <div className="flex items-center justify-between gap-3 mt-1">
+        <div className="text-sm text-muted min-w-0 truncate">{teamShort(bottom)}</div>
         <span className="font-display text-base font-bold tabular-nums text-faint shrink-0">{sBottom ?? '–'}</span>
       </div>
     </div>
@@ -157,18 +208,18 @@ function ArchiveSection({ archive }) {
   return (
     <section className="bg-surface border border-line rounded-2xl px-5 py-4 mt-4 shadow-[var(--shadow-card)]">
       <div className="flex items-baseline justify-between mb-1">
-        <h2 className="font-display text-lg font-bold">Turni giocati</h2>
+        <h2 className="font-display uppercase tracking-wide text-lg font-extrabold">Partite giocate</h2>
         <span className="text-xs text-muted">
-          {archive.length} {archive.length === 1 ? 'turno' : 'turni'}
+          {archive.length} {archive.length === 1 ? 'partita' : 'partite'}
         </span>
       </div>
       <div className="divide-y divide-line">
         {[...archive].reverse().map((t) => (
           <details key={t.turno} className="py-1">
-            <summary className="cursor-pointer py-2.5 font-display text-base font-bold">Turno {t.turno}</summary>
+            <summary className="cursor-pointer py-2.5 font-display text-base font-bold">Partita {t.turno}</summary>
             <div className="pb-3 flex flex-col gap-4">
-              <RoundBlock label="Round 1" results={t.round1} />
-              <RoundBlock label="Round 2" results={t.round2} />
+              <RoundBlock label="Turno 1" results={t.round1} />
+              <RoundBlock label="Turno 2" results={t.round2} />
             </div>
           </details>
         ))}
@@ -184,6 +235,7 @@ export default function TournamentScreen({ date }) {
   const [savedCourts, setSavedCourts] = useState(null);
   const [editCourts, setEditCourts] = useState(false);
   const [organizerName, setOrganizerName] = useState(null);
+  const [venue, setVenue] = useState(DEFAULT_VENUE);
   const admin = isAdmin();
 
   async function load() {
@@ -195,8 +247,13 @@ export default function TournamentScreen({ date }) {
     setState(t?.state ?? null);
     setSavedCourts(se?.courts ?? null);
     if (!t?.state && se?.courts) setCourtsInput(se.courts);
-    const { data: st } = await supabase.from('settings').select('organizer_name').eq('id', 1).maybeSingle();
+    const { data: st } = await supabase
+      .from('settings')
+      .select('organizer_name, venue_name, venue_address, venue_maps_url')
+      .eq('id', 1)
+      .maybeSingle();
     setOrganizerName(st?.organizer_name ?? null);
+    setVenue(venueFrom(st));
   }
 
   useEffect(() => {
@@ -232,8 +289,11 @@ export default function TournamentScreen({ date }) {
       return;
     }
     const courts = makeTeamsAvoidingRepeats(confirmed, clampCourts(Number(courtsInput)));
-    save({ turno: 1, round: 1, lastResults: null, courts, history: recordPairs({}, courts), historyBefore: {}, archive: [] });
+    // started: false → formazioni in anteprima, il torneo parte con "Inizia torneo".
+    save({ turno: 1, round: 1, started: false, lastResults: null, courts, history: recordPairs({}, courts), historyBefore: {}, archive: [] });
   };
+
+  const startTournament = () => save({ ...state, started: true });
   const effectiveCourts = () => clampCourts(savedCourts ?? state.courts.length);
 
   const regenerate = () => {
@@ -242,6 +302,7 @@ export default function TournamentScreen({ date }) {
     save({
       turno: state.turno,
       round: 1,
+      started: state.started,
       lastResults: null,
       courts,
       history: recordPairs(before, courts),
@@ -249,22 +310,33 @@ export default function TournamentScreen({ date }) {
       archive: state.archive || [],
     });
   };
+  // Riepilogo del turno corrente per l'archivio.
+  const turnoEntry = () => ({
+    turno: state.turno,
+    round1: round === 2 ? state.lastResults || [] : summarizeRound(state.courts),
+    round2: round === 2 ? summarizeRound(state.courts) : [],
+  });
+
+  // Salva il turno (anche il Round 2) nell'archivio senza iniziarne uno nuovo.
+  const closeTurno = () => save({ ...state, closed: true, archive: [...(state.archive || []), turnoEntry()] });
+
+  // Chiude il torneo: nessuna nuova partita, classifica definitiva.
+  const finishTournament = () => save({ ...state, finished: true });
+
   const newTurno = () => {
     const before = state.history || {};
-    const entry = {
-      turno: state.turno,
-      round1: round === 2 ? state.lastResults || [] : summarizeRound(state.courts),
-      round2: round === 2 ? summarizeRound(state.courts) : [],
-    };
+    const archive = state.archive || [];
     const courts = makeTeamsAvoidingRepeats(confirmed, effectiveCourts(), before);
     save({
       turno: (state.turno || 1) + 1,
       round: 1,
+      started: true,
       lastResults: null,
       courts,
       history: recordPairs(before, courts),
       historyBefore: before,
-      archive: [...(state.archive || []), entry],
+      // se il turno è già stato salvato non riarchiviarlo
+      archive: state.closed ? archive : [...archive, turnoEntry()],
     });
   };
   const goToRound2 = () =>
@@ -283,7 +355,24 @@ export default function TournamentScreen({ date }) {
   };
 
   const round = state?.round ?? 1;
+  // Retrocompat: i tornei salvati prima del flag non hanno `started` → considerati avviati.
+  const started = state ? state.started !== false : false;
   const allDecided = state?.courts.every((c) => c.winner === 'A' || c.winner === 'B');
+  // Partite da conteggiare: archivio + partita corrente (solo se non già archiviata).
+  const partite = state
+    ? [
+        ...(state.archive || []),
+        ...(state.closed
+          ? []
+          : [
+              {
+                round1: round === 2 ? state.lastResults || [] : summarizeRound(state.courts),
+                round2: round === 2 ? summarizeRound(state.courts) : [],
+              },
+            ]),
+      ]
+    : [];
+  const playerRank = playerStandings(partite);
   const courtCount = state ? state.courts.length : Number(courtsInput);
   const courtTag = (c) => {
     if (round !== 2) return null;
@@ -295,30 +384,33 @@ export default function TournamentScreen({ date }) {
 
   return (
     <main className="max-w-[460px] mx-auto px-5 pb-20">
-      <header className="anim-rise pt-4">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2">
-            <Ball className="w-6 h-6 text-accent" />
-            <h1 className="font-display text-[1.3rem] font-bold">Torneo</h1>
-          </div>
-          <a className={btnOutline} href="?">
-            ← Sondaggio
-          </a>
+      <header className="sticky top-0 z-30 -mx-5 px-5 py-3 bg-surface border-b border-line flex items-center justify-between gap-3">
+        <a href="?" aria-label="Torna ai giorni" className="flex items-center gap-1.5 no-underline transition hover:opacity-70">
+          <span className="text-xl leading-none text-ink">←</span>
+          <Ball className="w-7 h-7 text-accent" />
+          <span className="font-display uppercase tracking-wide text-[1.5rem] font-extrabold text-ink">In Campo</span>
+        </a>
+        <div className="text-right leading-tight">
+          <div className="eyebrow text-[0.62rem] text-faint">giornata</div>
+          <div className="text-sm font-semibold">{fmtDate(date)}</div>
         </div>
+      </header>
+
+      <section className="anim-rise pt-4">
         <a
-          href={VENUE.mapsUrl}
+          href={venue.mapsUrl}
           target="_blank"
           rel="noreferrer"
-          className="mt-3 inline-flex items-center gap-1.5 text-sm text-muted no-underline"
+          className="inline-flex items-center gap-1.5 text-sm text-muted no-underline"
         >
-          📍 <b className="text-ink font-semibold">{VENUE.name}</b> · {date}
+          📍 <b className="text-ink font-semibold">{venue.name}</b>
         </a>
         <div className="flex gap-8 mt-5">
           <Stat n={confirmed.length} k="giocatori" />
           <Stat n={courtCount} k="campi" />
           <Stat n={MAX_SCORE} k="punti/set" />
         </div>
-      </header>
+      </section>
 
       {!state && admin && (
         <section className="anim-rise bg-surface border border-line rounded-2xl p-5 mt-6 shadow-[var(--shadow-card)]">
@@ -366,9 +458,55 @@ export default function TournamentScreen({ date }) {
       )}
       {!state && !admin && <p className="text-muted mt-6 mx-0.5">In attesa che l'organizzatore generi le formazioni…</p>}
 
-      {state && (
+      {state && !started && (
+        <section className="anim-rise">
+          <div className="flex items-center gap-3 mt-8 mx-0.5">
+            <span className="font-display uppercase text-xl font-extrabold">Formazioni</span>
+            <span className="eyebrow text-[0.7rem] text-court border border-court/30 bg-courtsoft rounded-full px-2 py-0.5">
+              Anteprima
+            </span>
+            <span className="flex-1 h-px bg-line" />
+          </div>
+          <p className="text-xs text-muted mx-0.5 mt-2 mb-3">
+            Controlla le squadre. Il torneo parte quando premi “Inizia torneo”.
+          </p>
+          <div className="flex flex-col gap-3">
+            {state.courts.map((c, i) => (
+              <section key={i} className="bg-surface rounded-2xl p-4 border border-line shadow-[var(--shadow-card)]">
+                <div className="font-display uppercase tracking-wide text-lg font-extrabold mb-2">Campo {i + 1}</div>
+                <div className="text-[0.92rem] font-medium">{teamNames(c.teamA.players, false, organizerName)}</div>
+                <div className="flex items-center gap-3 my-1 mx-1 text-faint text-[0.62rem] font-semibold uppercase tracking-[0.14em]">
+                  <span className="flex-1 h-px bg-line" />
+                  vs
+                  <span className="flex-1 h-px bg-line" />
+                </div>
+                <div className="text-[0.92rem] font-medium">{teamNames(c.teamB.players, false, organizerName)}</div>
+              </section>
+            ))}
+          </div>
+          {admin ? (
+            <div className="flex flex-col items-center gap-3 mt-5">
+              <button className={`${btnPrimary} w-full`} onClick={startTournament}>
+                Inizia torneo
+              </button>
+              <button
+                className={btnOutline}
+                onClick={() => {
+                  if (confirm('Rigenerare le squadre?')) regenerate();
+                }}
+              >
+                Rigenera squadre
+              </button>
+            </div>
+          ) : (
+            <p className="text-muted mt-5 mx-0.5 text-center">Formazioni pronte · in attesa che l'organizzatore inizi il torneo…</p>
+          )}
+        </section>
+      )}
+
+      {state && started && (
         <>
-          {savedCourts != null && effectiveCourts() !== state.courts.length && (
+          {!state.finished && savedCourts != null && effectiveCourts() !== state.courts.length && (
             <div className="mt-5 rounded-2xl border border-accent/40 bg-accentsoft p-4">
               <p className="text-sm font-semibold">Campi aggiornati a {effectiveCourts()}</p>
               <p className="text-sm text-muted mt-0.5">Le formazioni attuali sono su {state.courts.length} campi.</p>
@@ -376,7 +514,7 @@ export default function TournamentScreen({ date }) {
                 <button
                   className={`${btnPrimary} mt-3`}
                   onClick={() => {
-                    if (confirm(`Rigenerare le formazioni su ${effectiveCourts()} campi? Il turno corrente verrà rifatto.`)) regenerate();
+                    if (confirm(`Rigenerare le formazioni su ${effectiveCourts()} campi? La partita corrente verrà rifatta.`)) regenerate();
                   }}
                 >
                   Rigenera su {effectiveCourts()} campi
@@ -385,34 +523,75 @@ export default function TournamentScreen({ date }) {
             </div>
           )}
 
+          {state.finished && (
+            <section className="mt-6 bg-surface border border-line rounded-2xl p-6 text-center shadow-[var(--shadow-card)]">
+              <div className="font-display uppercase text-2xl font-extrabold">🏁 Torneo concluso</div>
+              <p className="text-sm text-muted mt-1">La classifica qui sotto è definitiva.</p>
+            </section>
+          )}
+
           {state.archive?.length > 0 && <ArchiveSection archive={state.archive} />}
 
+          {!state.finished &&
+            (state.closed ? (
+            <section className="mt-8 bg-surface border border-line rounded-2xl p-6 text-center shadow-[var(--shadow-card)]">
+              <div className="font-display uppercase text-2xl font-extrabold">Partita {state.turno} salvata ✓</div>
+              <p className="text-sm text-muted mt-1">La trovi qui sopra in “Partite giocate”.</p>
+              {admin && (
+                <div className="flex flex-col items-center gap-3 mt-5">
+                  <button
+                    className={btnPrimary}
+                    onClick={() => {
+                      if (confirm('Iniziare una nuova partita? Le squadre vengono rimescolate.')) newTurno();
+                    }}
+                  >
+                    Inizia nuova partita
+                  </button>
+                  {(state.archive?.length || 0) >= 3 && (
+                    <button
+                      className={btnOutline}
+                      onClick={() => {
+                        if (
+                          confirm('Terminare il torneo? Non potrai più iniziare nuove partite e la classifica diventerà definitiva.')
+                        )
+                          finishTournament();
+                      }}
+                    >
+                      Fine torneo
+                    </button>
+                  )}
+                </div>
+              )}
+            </section>
+          ) : (
           <SlideSwap swapKey={`${state.turno}-${round}`}>
             <div className="flex items-center gap-3 mt-8 mx-0.5">
-              <span className="font-display text-lg font-bold">Turno {state.turno}</span>
-              <span className="text-[0.7rem] font-semibold uppercase tracking-wider text-muted border border-line rounded-full px-2 py-0.5">
-                Round {round}/2
+              <span className="font-display uppercase text-xl font-extrabold">Partita {state.turno}</span>
+              <span className="eyebrow text-[0.7rem] text-court border border-court/30 bg-courtsoft rounded-full px-2 py-0.5">
+                Turno {round}/2
               </span>
               <span className="flex-1 h-px bg-line" />
             </div>
             <p className="text-xs text-muted mx-0.5 mt-2 mb-3">
               {round === 1
-                ? 'Round 1: tutti giocano. Inserisci i punteggi — il vincente passa al Round 2 (vincenti vs vincenti, perdenti vs perdenti).'
-                : 'Round 2: vincenti contro vincenti, perdenti contro perdenti. Inserisci i punteggi finali.'}
+                ? 'Turno 1: tutti giocano. Inserisci i punteggi — il vincente passa al Turno 2 (vincenti vs vincenti, perdenti vs perdenti).'
+                : 'Turno 2: vincenti contro vincenti, perdenti contro perdenti. Inserisci i punteggi finali.'}
             </p>
 
             {round === 2 && state.lastResults && (
               <section className="bg-surface border border-line rounded-2xl p-4 mb-1 shadow-[var(--shadow-card)]">
-                <h3 className="font-display text-base font-bold mb-2">Riepilogo Round 1</h3>
-                <ul className="flex flex-col gap-1.5 text-sm">
+                <h3 className="font-display uppercase tracking-wide text-base font-extrabold mb-2">Riepilogo Turno 1</h3>
+                <ul className="flex flex-col divide-y divide-line">
                   {state.lastResults.map((r) => (
-                    <li key={r.court} className="flex flex-wrap items-baseline gap-x-2">
-                      <span className="text-faint text-xs uppercase tracking-wide">Campo {r.court + 1}</span>
-                      <span className="text-accent font-semibold">{r.winner.join(', ')}</span>
-                      <span className="font-display tabular-nums font-bold text-sm">
+                    <li key={r.court} className="flex items-center gap-3 py-2">
+                      <CourtBadge n={r.court + 1} />
+                      <div className="min-w-0 flex-1 leading-tight">
+                        <div className="text-accent font-semibold truncate">✓ {teamShort(r.winner)}</div>
+                        <div className="text-muted text-[0.82rem] truncate">{teamShort(r.loser)}</div>
+                      </div>
+                      <span className="font-display tabular-nums font-bold text-base shrink-0">
                         {r.scoreWinner}–{r.scoreLoser}
                       </span>
-                      <span className="text-muted">{r.loser.join(', ')}</span>
                     </li>
                   ))}
                 </ul>
@@ -430,7 +609,7 @@ export default function TournamentScreen({ date }) {
                     }`}
                   >
                     <div className="flex items-center justify-between mb-2">
-                      <span className="font-display text-base font-bold flex items-center gap-1.5">
+                      <span className="font-display uppercase tracking-wide text-lg font-extrabold flex items-center gap-1.5">
                         {isWinnersCourt && '👑'} Campo {i + 1}
                       </span>
                       {courtTag(c) && (
@@ -469,29 +648,23 @@ export default function TournamentScreen({ date }) {
               <div className="flex flex-wrap items-center gap-2.5 mt-5">
                 {round === 1 && (
                   <button className={btnPrimary} disabled={!allDecided} onClick={goToRound2}>
-                    Round 2 →
+                    Turno 2 →
                   </button>
                 )}
-                {round === 2 && <span className="text-sm font-semibold text-accent">Turno finito 🎉</span>}
-                <button
-                  className={btnOutline}
-                  onClick={() => {
-                    if (confirm('Iniziare un nuovo turno? Le squadre vengono rimescolate.')) newTurno();
-                  }}
-                >
-                  Nuovo turno
-                </button>
-                <button
-                  className={btnGhost}
-                  onClick={() => {
-                    if (confirm('Rigenerare le squadre del turno corrente? (i turni già giocati restano)')) regenerate();
-                  }}
-                >
-                  Rigenera
-                </button>
+                {round === 2 &&
+                  (state.closed ? (
+                    <span className="text-sm font-semibold text-accent">Partita salvata ✓</span>
+                  ) : (
+                    <button className={btnPrimary} disabled={!allDecided} onClick={closeTurno}>
+                      Salva partita
+                    </button>
+                  ))}
               </div>
             )}
           </SlideSwap>
+          ))}
+
+          <PlayerRanking players={playerRank} final={state.finished} />
         </>
       )}
     </main>

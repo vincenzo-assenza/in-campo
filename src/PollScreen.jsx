@@ -7,7 +7,8 @@ import {
   DEFAULT_COURTS,
   DEFAULT_TIME,
   DEFAULT_START,
-  VENUE,
+  DEFAULT_VENUE,
+  venueFrom,
   isAdmin,
   loginAdmin,
   logoutAdmin,
@@ -16,15 +17,22 @@ import { useName } from './useName.js';
 import { initials, avatarColor } from './ui.js';
 import { Ball } from './Ball.jsx';
 
+// Pulsanti: primario = arancio (CTA), scuro = navy (navigazione forte), outline = bordo.
 const btnPrimary =
-  'block w-full text-center font-semibold text-[0.95rem] px-4 py-3 rounded-xl bg-night text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
+  'block w-full text-center font-display uppercase tracking-wide text-[1.05rem] font-bold px-4 py-3 rounded-xl bg-accent text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
+const btnDark =
+  'block w-full text-center font-display uppercase tracking-wide text-[1.05rem] font-bold px-4 py-3 rounded-xl bg-night text-white no-underline transition active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
 const btnOutline =
-  'block w-full text-center font-semibold text-[0.95rem] px-4 py-3 rounded-xl border border-line2 bg-surface text-ink no-underline transition hover:border-ink active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
-const statusBox = 'block w-full text-center font-semibold text-[0.95rem] px-4 py-3 rounded-xl';
-const undoLink = 'block mx-auto text-xs text-faint underline';
-const btnSm = 'font-semibold text-sm px-4 py-2.5 rounded-lg bg-night text-white transition active:scale-[.99] disabled:opacity-50';
+  'block w-full text-center font-display uppercase tracking-wide text-[1.05rem] font-bold px-4 py-3 rounded-xl border-2 border-line2 bg-surface text-ink no-underline transition hover:border-ink active:scale-[.99] disabled:opacity-50 disabled:pointer-events-none';
+const statusBox = 'block w-full text-center font-display uppercase tracking-wide text-[1.05rem] font-bold px-4 py-3 rounded-xl';
+const undoLink = 'block mx-auto text-sm text-faint underline';
+const btnSm =
+  'font-display uppercase tracking-wide text-sm font-bold px-4 py-2.5 rounded-lg bg-accent text-white transition active:scale-[.99] disabled:opacity-50';
 const btnSmOutline = 'font-semibold text-sm px-4 py-2.5 rounded-lg border border-line2 bg-surface text-ink transition';
 const field = 'mt-1 w-full px-3 py-2 rounded-lg border border-line bg-surface outline-none focus:border-accent text-base text-ink';
+
+const cap = (s) =>
+  s.replace(/\s+/g, ' ').trim().split(' ').map((w) => (w ? w[0].toUpperCase() + w.slice(1).toLowerCase() : '')).join(' ');
 
 const fmtDow = (iso) => {
   const s = new Date(iso + 'T00:00:00').toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric' });
@@ -69,6 +77,17 @@ function AvatarStack({ players, max = 4 }) {
           +{extra}
         </span>
       )}
+    </div>
+  );
+}
+
+// Barra capienza: confermati (arancio) + lista d'attesa (navy tenue) su fondo sabbia.
+function CapacityBar({ confirmed, waitlist, cap }) {
+  const conf = Math.min(confirmed, cap);
+  return (
+    <div className="h-2 w-full rounded-full bg-line overflow-hidden flex">
+      <span className="h-full bg-accent" style={{ width: `${(conf / cap) * 100}%` }} />
+      {waitlist > 0 && <span className="h-full bg-court/40" style={{ width: `${Math.min(1 - conf / cap, (waitlist / cap)) * 100}%` }} />}
     </div>
   );
 }
@@ -141,13 +160,17 @@ function DaysSettings({ weekdays, onSave, notify }) {
   useEffect(() => setSel(weekdays), [weekdays.join(',')]);
   const toggle = (d) => setSel((s) => (s.includes(d) ? s.filter((x) => x !== d) : [...s, d]));
   const save = async () => {
-    await onSave([...sel].sort((a, b) => a - b));
-    notify('Giorni salvati');
-    if (ref.current) ref.current.open = false;
+    try {
+      await onSave([...sel].sort((a, b) => a - b));
+      notify('Giorni salvati');
+      if (ref.current) ref.current.open = false;
+    } catch (e) {
+      notify(`Errore: ${e.message}`, true);
+    }
   };
   return (
-    <details ref={ref} className="bg-surface border border-line rounded-2xl px-4 py-3 mt-4 shadow-[var(--shadow-card)]">
-      <summary className="cursor-pointer text-sm font-semibold text-muted">Gestione Giorni</summary>
+    <details ref={ref} className="bg-surface border border-line rounded-2xl px-4 py-3 mt-3 shadow-[var(--shadow-card)]">
+      <summary className="cursor-pointer eyebrow text-sm text-muted">Gestione Giorni</summary>
       <p className="text-xs text-muted mt-2">In quali giorni della settimana si propone di giocare.</p>
       <div className="flex flex-wrap gap-2 mt-3">
         {WD_LABELS.map(([label, d]) => (
@@ -170,15 +193,62 @@ function DaysSettings({ weekdays, onSave, notify }) {
   );
 }
 
-function AdminBooking({ sess, onSave, onCancel, notify }) {
-  const [cap, setCap] = useState(String(sess?.capacity ?? DEFAULT_CAPACITY));
+// Sede di gioco modificabile dall'organizzatore.
+function VenueSettings({ venue, onSave, notify }) {
+  const [name, setName] = useState(venue.name);
+  const [address, setAddress] = useState(venue.address);
+  const [mapsUrl, setMapsUrl] = useState(venue.mapsUrl);
+  const ref = useRef(null);
+  useEffect(() => {
+    setName(venue.name);
+    setAddress(venue.address);
+    setMapsUrl(venue.mapsUrl);
+  }, [venue.name, venue.address, venue.mapsUrl]);
+  const save = async () => {
+    try {
+      await onSave({
+        venue_name: name.trim() || null,
+        venue_address: address.trim() || null,
+        venue_maps_url: mapsUrl.trim() || null,
+      });
+      notify('Sede salvata');
+      if (ref.current) ref.current.open = false;
+    } catch (e) {
+      notify(`Errore: ${e.message}`, true);
+    }
+  };
+  return (
+    <details ref={ref} className="bg-surface border border-line rounded-2xl px-4 py-3 mt-3 shadow-[var(--shadow-card)]">
+      <summary className="cursor-pointer eyebrow text-sm text-muted">Gestione Sede</summary>
+      <p className="text-xs text-muted mt-2">Dove si gioca. Il link mappa è opzionale: se vuoto lo generiamo dall'indirizzo.</p>
+      <label className="block text-xs font-semibold text-muted mt-3">
+        Nome sede
+        <input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder={DEFAULT_VENUE.name} className={field} />
+      </label>
+      <label className="block text-xs font-semibold text-muted mt-3">
+        Indirizzo
+        <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} placeholder={DEFAULT_VENUE.address} className={field} />
+      </label>
+      <label className="block text-xs font-semibold text-muted mt-3">
+        Link Google Maps (opzionale)
+        <input type="url" value={mapsUrl} onChange={(e) => setMapsUrl(e.target.value)} placeholder="https://maps.google.com/?q=…" className={field} />
+      </label>
+      <button className={`${btnSm} mt-3`} onClick={save}>
+        Salva sede
+      </button>
+    </details>
+  );
+}
+
+function AdminBooking({ sess, onSave, onCancel, notify, locked }) {
+  const [capacity, setCapacity] = useState(String(sess?.capacity ?? DEFAULT_CAPACITY));
   const [courts, setCourts] = useState(String(sess?.courts ?? DEFAULT_COURTS));
   const [note, setNote] = useState(sess?.note ?? DEFAULT_TIME);
   const booked = sess?.status === 'booked';
   const ref = useRef(null);
 
   useEffect(() => {
-    if (sess?.capacity != null) setCap(String(sess.capacity));
+    if (sess?.capacity != null) setCapacity(String(sess.capacity));
     if (sess?.courts != null) setCourts(String(sess.courts));
     if (sess?.note != null) setNote(sess.note);
   }, [sess?.capacity, sess?.courts, sess?.note]);
@@ -188,7 +258,7 @@ function AdminBooking({ sess, onSave, onCancel, notify }) {
   };
   const save = async () => {
     await onSave({
-      capacity: Math.max(1, Math.floor(Number(cap)) || DEFAULT_CAPACITY),
+      capacity: Math.max(1, Math.floor(Number(capacity)) || DEFAULT_CAPACITY),
       courts: Math.min(5, Math.max(1, Math.floor(Number(courts)) || DEFAULT_COURTS)),
       note: note.trim() || DEFAULT_TIME,
     });
@@ -204,34 +274,38 @@ function AdminBooking({ sess, onSave, onCancel, notify }) {
 
   return (
     <details ref={ref} className="border-t border-line pt-3">
-      <summary className="cursor-pointer text-sm font-semibold text-muted">Gestione organizzatore</summary>
+      <summary className="cursor-pointer eyebrow text-sm text-muted">Gestione organizzatore</summary>
       <p className="text-sm mt-3">
         Stato: <b className={booked ? 'text-accent' : 'text-muted'}>{booked ? 'Prenotato' : 'Non prenotato'}</b>
       </p>
       <div className="mt-3 grid grid-cols-2 gap-3">
         <label className="text-xs font-semibold text-muted">
           Capienza (posti)
-          <input type="number" inputMode="numeric" min="1" value={cap} onChange={(e) => setCap(e.target.value)} className={field} />
+          <input type="number" inputMode="numeric" min="1" value={capacity} onChange={(e) => setCapacity(e.target.value)} disabled={locked} className={field} />
         </label>
         <label className="text-xs font-semibold text-muted">
           Campi (1–5)
-          <input type="number" inputMode="numeric" min="1" max="5" value={courts} onChange={(e) => setCourts(e.target.value)} className={field} />
+          <input type="number" inputMode="numeric" min="1" max="5" value={courts} onChange={(e) => setCourts(e.target.value)} disabled={locked} className={field} />
         </label>
         <label className="col-span-2 text-xs font-semibold text-muted">
           Orario / campo
-          <input type="text" value={note} onChange={(e) => setNote(e.target.value)} className={field} />
+          <input type="text" value={note} onChange={(e) => setNote(e.target.value)} disabled={locked} className={field} />
         </label>
       </div>
-      <div className="flex flex-wrap gap-2 mt-3">
-        <button className={btnSm} onClick={save}>
-          {booked ? 'Salva modifiche' : 'Prenota e salva'}
-        </button>
-        {booked && (
-          <button className={`${btnSmOutline} text-accent`} onClick={cancel}>
-            Annulla prenotazione
+      {locked ? (
+        <p className="text-xs text-muted mt-3">🔒 Torneo iniziato: prenotazione e campi non più modificabili.</p>
+      ) : (
+        <div className="flex flex-wrap gap-2 mt-3">
+          <button className={btnSm} onClick={save}>
+            {booked ? 'Salva modifiche' : 'Prenota e salva'}
           </button>
-        )}
-      </div>
+          {booked && (
+            <button className={`${btnSmOutline} text-accent`} onClick={cancel}>
+              Annulla prenotazione
+            </button>
+          )}
+        </div>
+      )}
     </details>
   );
 }
@@ -244,29 +318,38 @@ export default function PollScreen() {
   const [checking, setChecking] = useState(false);
   const [signups, setSignups] = useState([]);
   const [sessions, setSessions] = useState({});
+  const [tournaments, setTournaments] = useState({});
   const [weekdays, setWeekdays] = useState(WEEKDAYS);
   const [organizerName, setOrganizerName] = useState(null);
+  const [venue, setVenue] = useState(DEFAULT_VENUE);
   const [toast, setToast] = useState(null);
   const days = weekCandidateDays(weekdays, new Date());
   const admin = isAdmin();
-  const notify = (msg) => setToast(msg);
+  const notify = (msg, error = false) => setToast({ msg, error });
 
   useEffect(() => {
     if (!toast) return;
-    const t = setTimeout(() => setToast(null), 2200);
+    const t = setTimeout(() => setToast(null), toast.error ? 4000 : 2200);
     return () => clearTimeout(t);
   }, [toast]);
 
   async function load() {
-    const { data: st } = await supabase.from('settings').select('weekdays, organizer_name').eq('id', 1).maybeSingle();
+    const { data: st } = await supabase
+      .from('settings')
+      .select('weekdays, organizer_name, venue_name, venue_address, venue_maps_url')
+      .eq('id', 1)
+      .maybeSingle();
     const wd = st?.weekdays ?? WEEKDAYS;
     setWeekdays(wd);
     setOrganizerName(st?.organizer_name ?? null);
+    setVenue(venueFrom(st));
     const ds = weekCandidateDays(wd, new Date());
     const { data: su } = await supabase.from('signups').select('*').in('session_date', ds);
     setSignups(su || []);
     const { data: se } = await supabase.from('sessions').select('*').in('session_date', ds);
     setSessions(Object.fromEntries((se || []).map((r) => [r.session_date, r])));
+    const { data: tr } = await supabase.from('tournaments').select('session_date, state').in('session_date', ds);
+    setTournaments(Object.fromEntries((tr || []).map((r) => [r.session_date, r.state])));
   }
 
   useEffect(() => {
@@ -275,6 +358,7 @@ export default function PollScreen() {
       .channel('poll')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'signups' }, load)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'sessions' }, load)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tournaments' }, load)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'settings' }, load)
       .subscribe();
     return () => supabase.removeChannel(ch);
@@ -282,7 +366,14 @@ export default function PollScreen() {
   }, []);
 
   async function saveWeekdays(wd) {
-    await supabase.from('settings').update({ weekdays: wd }).eq('id', 1);
+    const { error } = await supabase.from('settings').update({ weekdays: wd }).eq('id', 1);
+    if (error) throw error;
+    load();
+  }
+
+  async function saveVenue(v) {
+    const { error } = await supabase.from('settings').update(v).eq('id', 1);
+    if (error) throw error;
     load();
   }
 
@@ -323,16 +414,18 @@ export default function PollScreen() {
     load();
   }
 
-  function changeName() {
+  // "Esci": dimentica l'identità di questo dispositivo (torna alla schermata nome).
+  function exitPlayer() {
+    if (!confirm('Vuoi uscire? Dovrai reinserire nome e cognome.')) return;
     localStorage.removeItem('bv_name');
     window.location.reload();
   }
 
   async function submitName() {
-    const nome = nameInput.trim();
-    const ini = surnameInput.trim();
-    if (!nome || !ini) return;
-    const full = `${nome} ${ini[0].toUpperCase()}.`;
+    const nome = cap(nameInput);
+    const cognome = cap(surnameInput);
+    if (!nome || !cognome) return;
+    const full = `${nome} ${cognome}`;
     setChecking(true);
     const { data } = await supabase.from('signups').select('player_name').eq('player_name', full).limit(1);
     setChecking(false);
@@ -342,19 +435,20 @@ export default function PollScreen() {
 
   // ---- Schermata nome (primo accesso) ----
   if (!name) {
+    const previewName = `${cap(nameInput) || 'Nome'} ${cap(surnameInput) || 'Cognome'}`;
     return (
       <main className="min-h-screen max-w-[460px] mx-auto px-5 flex flex-col">
         <header className="flex items-center gap-2 pt-5">
-          <Ball className="w-6 h-6 text-accent" />
-          <span className="font-display text-[1.15rem] font-bold">Beach Volley</span>
+          <Ball className="w-7 h-7 text-accent" />
+          <span className="font-display uppercase tracking-wide text-[1.35rem] font-extrabold">In Campo</span>
         </header>
 
         <section className="flex-1 flex flex-col justify-center py-10">
-          <h1 className="font-display text-[2.3rem] font-bold leading-[1.06] text-balance">
-            Pronto a giocare?
+          <h1 className="font-display uppercase text-[3rem] font-extrabold leading-[0.92] text-balance">
+            Pronto a<br />giocare?
           </h1>
-          <p className="text-muted mt-3 text-[1.02rem] text-balance">
-            Segna la tua presenza e segui il torneo dal vivo.
+          <p className="text-muted mt-3 text-[1.05rem] text-balance">
+            Organizza il beach volley tra amici: prenota i giorni, conferma la presenza e segui il torneo in tempo reale.
           </p>
 
           <div className="anim-rise bg-surface border border-line rounded-2xl p-5 mt-7 shadow-[var(--shadow-card)]">
@@ -372,7 +466,7 @@ export default function PollScreen() {
                   </button>
                 </div>
                 <p className="text-muted text-sm mt-3">
-                  Se sei un altro giocatore, aggiungi il cognome o un'iniziale per distinguerti.
+                  Se sei un altro giocatore, usa un secondo nome o un'iniziale per distinguerti.
                 </p>
               </>
             ) : (
@@ -382,7 +476,7 @@ export default function PollScreen() {
                   submitName();
                 }}
               >
-                <label className="text-sm font-semibold">Nome e iniziale del cognome</label>
+                <label className="eyebrow text-xs text-muted">Nome e cognome</label>
                 <div className="flex gap-2 mt-2">
                   <input
                     className="flex-1 min-w-0 px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent"
@@ -392,16 +486,14 @@ export default function PollScreen() {
                     autoFocus
                   />
                   <input
-                    className="w-20 px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent text-center uppercase placeholder:normal-case"
+                    className="flex-1 min-w-0 px-3 py-3 rounded-xl border border-line bg-surface outline-none focus:border-accent"
                     value={surnameInput}
                     onChange={(e) => setSurnameInput(e.target.value)}
-                    placeholder="Cogn."
-                    maxLength={1}
-                    aria-label="Iniziale del cognome"
+                    placeholder="Cognome"
                   />
                 </div>
                 <p className="text-xs text-faint mt-2">
-                  Apparirai come <b className="text-muted font-semibold">{`${nameInput.trim() || 'Nome'} ${(surnameInput.trim()[0] || 'X').toUpperCase()}.`}</b>
+                  Apparirai come <b className="text-muted font-semibold">{previewName}</b>
                 </p>
                 <button
                   className={`${btnPrimary} mt-4`}
@@ -413,7 +505,6 @@ export default function PollScreen() {
               </form>
             )}
           </div>
-
         </section>
 
         <footer className="py-6 flex flex-col items-center gap-3 text-center">
@@ -429,31 +520,46 @@ export default function PollScreen() {
     <main className="max-w-[460px] mx-auto px-5 pb-20">
       <header className="sticky top-0 z-30 -mx-5 px-5 py-3 bg-surface border-b border-line flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Ball className="w-6 h-6 text-accent" />
-          <h1 className="font-display text-[1.3rem] font-bold">Beach Volley</h1>
+          <Ball className="w-7 h-7 text-accent" />
+          <h1 className="font-display uppercase tracking-wide text-[1.5rem] font-extrabold">In Campo</h1>
         </div>
-        <div className="flex items-center gap-2.5">
-          <div className="text-right leading-tight">
-            <div className="text-[0.72rem] text-muted">ciao</div>
-            <div className="text-sm font-semibold">{name}</div>
+        <div className="flex items-center gap-2">
+          <div className="text-right leading-tight min-w-0">
+            <div className="eyebrow text-[0.62rem] text-faint">ciao</div>
+            <div className="text-sm font-semibold truncate max-w-[11rem]">{name}</div>
           </div>
-          <Avatar name={name} size="lg" />
+          <button
+            onClick={exitPlayer}
+            aria-label="Esci"
+            title="Esci"
+            className="grid place-items-center w-9 h-9 rounded-lg border border-line2 text-muted hover:text-accent hover:border-accent transition"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="w-5 h-5"
+            >
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+              <polyline points="16 17 21 12 16 7" />
+              <line x1="21" x2="9" y1="12" y2="12" />
+            </svg>
+          </button>
         </div>
       </header>
 
-      <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
-        <button className="underline" onClick={changeName}>
-          cambia nome
-        </button>
-        {admin &&
-          (organizerName === name ? (
+      {admin && (
+        <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+          {organizerName === name ? (
             <span className="text-accent font-semibold">👑 Organizzatore</span>
           ) : (
             <button className="underline" onClick={claimOrganizer}>
               Sono io l'organizzatore
             </button>
-          ))}
-        {admin && (
+          )}
           <button
             className="underline"
             onClick={() => {
@@ -461,30 +567,33 @@ export default function PollScreen() {
               window.location.reload();
             }}
           >
-            esci
+            Esci da organizzatore
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       <a
-        href={VENUE.mapsUrl}
+        href={venue.mapsUrl}
         target="_blank"
         rel="noreferrer"
         className="mt-4 flex items-center gap-2 text-sm text-muted bg-surface border border-line rounded-xl px-4 py-3 no-underline"
       >
         <span>📍</span>
         <span>
-          <b className="text-ink font-semibold">{VENUE.name}</b> · {VENUE.address}
+          <b className="text-ink font-semibold">{venue.name}</b> · {venue.address}
         </span>
         <span className="ml-auto text-faint">›</span>
       </a>
 
-      {admin && <DaysSettings weekdays={weekdays} onSave={saveWeekdays} notify={notify} />}
+      {admin && (
+        <>
+          <DaysSettings weekdays={weekdays} onSave={saveWeekdays} notify={notify} />
+          <VenueSettings venue={venue} onSave={saveVenue} notify={notify} />
+        </>
+      )}
 
       <div className="flex items-baseline justify-between mt-8 mb-3 mx-0.5">
-        <span className="text-[0.72rem] font-semibold tracking-[0.09em] uppercase text-faint">
-          Settimana {weekRange()}
-        </span>
+        <span className="eyebrow text-sm text-court">Settimana {weekRange()}</span>
         <span className="text-sm text-muted">{days.length} giorni</span>
       </div>
 
@@ -494,17 +603,22 @@ export default function PollScreen() {
         {days.map((date) => {
           const sess = sessions[date];
           const booked = sess?.status === 'booked';
-          const cap = sess?.capacity ?? DEFAULT_CAPACITY;
+          const capN = sess?.capacity ?? DEFAULT_CAPACITY;
           const daySignups = signups.filter((s) => s.session_date === date);
-          const { confirmed, waitlist } = splitConfirmedWaitlist(daySignups, cap);
-          const free = Math.max(0, cap - confirmed.length);
+          const { confirmed, waitlist } = splitConfirmedWaitlist(daySignups, capN);
+          const free = Math.max(0, capN - confirmed.length);
           const timeLabel = booked && sess?.note ? sess.note : DEFAULT_TIME;
           const startTime = parseStartTime(sess?.note, DEFAULT_START);
           const canStart = booked && (admin || hasStarted(date, startTime, new Date()));
           const userConfirmed = confirmed.some((s) => s.player_name === name);
           const waitPos = waitlist.findIndex((s) => s.player_name === name);
-          const full = confirmed.length >= cap;
+          const full = confirmed.length >= capN;
           const countText = waitlist.length > 0 ? `${waitlist.length} in lista` : free > 0 ? `${free} liberi` : 'pieno';
+          // Torneo generato per questo giorno → presenza non più modificabile.
+          const tourn = tournaments[date];
+          const locked = !!tourn;
+          const tournamentFinished = tourn?.finished === true;
+          const tournamentStarted = !!tourn && tourn.started !== false; // retrocompat: vecchi tornei senza flag = avviati
 
           return (
             <section
@@ -514,31 +628,35 @@ export default function PollScreen() {
               {/* Giorno = punto focale */}
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <div className="font-display text-[1.5rem] font-bold leading-tight">{fmtDow(date)}</div>
-                  <div className="text-sm text-muted mt-1">{timeLabel}</div>
+                  <div className="font-display uppercase text-[2rem] font-extrabold leading-none">{fmtDow(date)}</div>
+                  <div className="text-sm text-muted mt-1.5">{timeLabel}</div>
                 </div>
                 {booked && (
-                  <span className="flex-none text-[0.72rem] font-semibold text-accent bg-accentsoft rounded-full px-2.5 py-1">
+                  <span className="flex-none eyebrow text-[0.7rem] text-white bg-accent rounded-full px-3 py-1">
                     Prenotato
                   </span>
                 )}
               </div>
 
-              {/* Presenze */}
+              {/* Presenze + barra capienza */}
               {admin ? (
                 <div className="flex flex-col gap-2">
-                  <span className="text-sm text-muted">
-                    <b className="text-ink font-bold tabular-nums">{confirmed.length}</b>/{cap} confermati
-                    {waitlist.length > 0 && ` · ${waitlist.length} in lista`}
-                  </span>
+                  <div className="flex items-baseline justify-between">
+                    <span className="text-sm text-muted">
+                      <b className="font-display text-xl text-ink tabular-nums">{confirmed.length}</b>
+                      <span className="text-faint">/{capN}</span> confermati
+                      {waitlist.length > 0 && ` · ${waitlist.length} in lista`}
+                    </span>
+                  </div>
+                  <CapacityBar confirmed={confirmed.length} waitlist={waitlist.length} cap={capN} />
                   {confirmed.length > 0 && (
-                    <div className="flex flex-wrap gap-1.5">
+                    <div className="flex flex-wrap gap-1.5 mt-1">
                       {confirmed.map((s) => (
                         <Chip
                           key={s.player_name}
                           name={s.player_name}
                           organizer={s.player_name === organizerName}
-                          onRemove={() => removePlayer(date, s.player_name)}
+                          onRemove={locked ? undefined : () => removePlayer(date, s.player_name)}
                         />
                       ))}
                     </div>
@@ -552,7 +670,7 @@ export default function PollScreen() {
                             key={s.player_name}
                             name={s.player_name}
                             organizer={s.player_name === organizerName}
-                            onRemove={() => removePlayer(date, s.player_name)}
+                            onRemove={locked ? undefined : () => removePlayer(date, s.player_name)}
                           />
                         ))}
                       </div>
@@ -560,36 +678,44 @@ export default function PollScreen() {
                   )}
                 </div>
               ) : (
-                <div className="flex items-center gap-3">
-                  {confirmed.length > 0 ? (
-                    <AvatarStack players={confirmed.map((s) => s.player_name)} />
-                  ) : (
-                    <span className="text-sm text-faint">Ancora nessun confermato</span>
-                  )}
-                  <span className="ml-auto text-sm text-muted">
-                    <b className="text-ink font-bold tabular-nums">{confirmed.length}</b>/{cap} · {countText}
-                  </span>
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex items-center gap-3">
+                    {confirmed.length > 0 ? (
+                      <AvatarStack players={confirmed.map((s) => s.player_name)} />
+                    ) : (
+                      <span className="text-sm text-faint">Ancora nessun confermato</span>
+                    )}
+                    <span className="ml-auto text-sm text-muted">
+                      <b className="font-display text-xl text-ink tabular-nums">{confirmed.length}</b>
+                      <span className="text-faint">/{capN}</span> · {countText}
+                    </span>
+                  </div>
+                  <CapacityBar confirmed={confirmed.length} waitlist={waitlist.length} cap={capN} />
                 </div>
               )}
 
               {/* Azione */}
               <div className="flex flex-col gap-2">
                 {!isIn(date) ? (
-                  full ? (
+                  locked ? (
+                    <span className={`${statusBox} bg-ground text-muted border border-line`}>
+                      {tournamentFinished ? 'Torneo concluso' : tournamentStarted ? 'Torneo in corso' : 'Formazioni pronte'}
+                    </span>
+                  ) : full ? (
                     <button className={btnOutline} onClick={() => toggle(date)}>
-                      Mettiti in lista d'attesa
+                      In lista d'attesa
                     </button>
                   ) : (
                     <button className={btnPrimary} onClick={() => toggle(date)}>
-                      Confermo
+                      Iscrivimi
                     </button>
                   )
                 ) : (
                   <>
                     {booked && userConfirmed ? (
                       canStart ? (
-                        <a className={btnPrimary} href={`?date=${date}&view=tournament`}>
-                          Vai al torneo →
+                        <a className={btnDark} href={`?date=${date}&view=tournament`}>
+                          {tournamentFinished ? 'Vedi risultati →' : 'Vai al torneo →'}
                         </a>
                       ) : (
                         <span className={`${btnOutline} opacity-60 pointer-events-none`}>Inizia alle {startTime}</span>
@@ -597,26 +723,35 @@ export default function PollScreen() {
                     ) : (
                       <span
                         className={`${statusBox} ${
-                          userConfirmed ? 'bg-accentsoft text-accent' : 'bg-ground text-muted border border-line'
+                          userConfirmed ? 'bg-accentsoft text-accent' : 'bg-courtsoft text-court'
                         }`}
                       >
-                        {userConfirmed ? '✓ Confermato' : `🕓 In lista d'attesa · pos. ${waitPos + 1}`}
+                        {userConfirmed ? '✓ Confermato' : `🕓 In lista · pos. ${waitPos + 1}`}
                       </span>
                     )}
-                    <button className={undoLink} onClick={() => toggle(date)}>
-                      annulla la presenza
-                    </button>
+                    {!locked && (
+                      <button className={undoLink} onClick={() => toggle(date)}>
+                        annulla la presenza
+                      </button>
+                    )}
                   </>
+                )}
+                {/* Organizzatore non iscritto: accesso diretto al torneo, sotto l'azione di iscrizione. */}
+                {admin && booked && !userConfirmed && (
+                  <a className={btnDark} href={`?date=${date}&view=tournament`}>
+                    Vai al torneo →
+                  </a>
                 )}
               </div>
 
               {admin && (
                 <AdminBooking
-                sess={sess}
-                onSave={(v) => saveBooking(date, v)}
-                onCancel={() => cancelBooking(date)}
-                notify={notify}
-              />
+                  sess={sess}
+                  onSave={(v) => saveBooking(date, v)}
+                  onCancel={() => cancelBooking(date)}
+                  notify={notify}
+                  locked={locked}
+                />
               )}
             </section>
           );
@@ -630,9 +765,11 @@ export default function PollScreen() {
       {toast && (
         <div
           role="status"
-          className="anim-rise fixed left-1/2 -translate-x-1/2 bottom-6 z-50 bg-accent text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-[0_8px_30px_-8px_rgba(15,118,110,0.6)]"
+          className={`anim-rise fixed left-1/2 -translate-x-1/2 bottom-6 z-50 text-white text-sm font-semibold px-4 py-2.5 rounded-xl shadow-[0_8px_30px_-8px_rgba(249,115,22,0.6)] max-w-[90vw] text-center ${
+            toast.error ? 'bg-red-600' : 'bg-accent'
+          }`}
         >
-          {toast}
+          {toast.msg}
         </div>
       )}
     </main>

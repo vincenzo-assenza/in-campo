@@ -111,6 +111,30 @@ export function summarizeRound(courts) {
   });
 }
 
+// Classifica giocatori: punti = turni vinti dal singolo giocatore (la differenza
+// punti è un dato di squadra, non personale → non usata). Ordina per vittorie,
+// poi meno sconfitte, poi nome.
+export function playerStandings(partite) {
+  const m = new Map();
+  const add = (player, won) => {
+    const t = m.get(player) || { player, played: 0, wins: 0, losses: 0 };
+    t.played += 1;
+    t.wins += won ? 1 : 0;
+    t.losses += won ? 0 : 1;
+    m.set(player, t);
+  };
+  for (const p of partite || []) {
+    for (const round of [p.round1, p.round2]) {
+      for (const r of round || []) {
+        if (!r.winner) continue; // solo match decisi
+        for (const pl of r.winner) add(pl, true);
+        for (const pl of r.loser) add(pl, false);
+      }
+    }
+  }
+  return [...m.values()].sort((a, b) => b.wins - a.wins || a.losses - b.losses || a.player.localeCompare(b.player));
+}
+
 // Round 2: i vincenti si sfidano tra loro, i perdenti tra loro.
 // Classifica 1v2,3v4,5v6: vincenti (in ordine di campo) sopra, perdenti sotto,
 // poi si accoppiano in fila. Con campi dispari il 3° vincente affronta il

@@ -1,23 +1,25 @@
 @import "tailwindcss";
 
-/* Quiet Court — minimal, mobile-first. Base neutra calda (bias verde), un solo accento teal. */
+/* Sun & Sand — sporty, mobile-first. Sabbia calda, accento arancio energico, blu campo. */
 @theme {
-  --color-ground: #f2f4f3;
+  --color-ground: #fbf3e8; /* sabbia */
   --color-surface: #ffffff;
-  --color-ink: #14201d; /* near-black */
-  --color-muted: #6b736f;
-  --color-faint: #9aa09c;
-  --color-line: #e6e8e5;
-  --color-line2: #d6dad6;
-  --color-accent: #0f766e; /* teal — solo stati */
-  --color-accentsoft: #e6f2ef;
-  --color-night: #16201e; /* azioni primarie */
-  --color-winsoft: #e6f2ef;
+  --color-ink: #15243a; /* navy campo — near-black caldo-freddo */
+  --color-muted: #5d6b7e;
+  --color-faint: #9aa6b2;
+  --color-line: #ece2d4;
+  --color-line2: #ddccb6;
+  --color-accent: #f97316; /* arancio — CTA + stati attivi */
+  --color-accentsoft: #ffe6cf;
+  --color-night: #13243f; /* navy — header / azioni scure */
+  --color-court: #2563eb; /* blu campo — accenti secondari */
+  --color-courtsoft: #e0ebff;
+  --color-winsoft: #ffe6cf;
 
-  --font-display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
-  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: "Barlow Condensed", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Barlow", ui-sans-serif, system-ui, -apple-system, sans-serif;
 
-  --shadow-card: 0 1px 2px rgba(20, 32, 29, 0.04), 0 10px 30px -18px rgba(20, 32, 29, 0.2);
+  --shadow-card: 0 1px 2px rgba(21, 36, 58, 0.05), 0 12px 32px -18px rgba(21, 36, 58, 0.26);
 }
 
 @layer base {
@@ -28,7 +30,7 @@
     font-family: var(--font-sans);
     color: var(--color-ink);
     background-color: var(--color-ground);
-    background-image: url("/sun.svg"), url("/bg.svg"), linear-gradient(180deg, #f6f8f7 0%, #eef1f0 100%);
+    background-image: url("/sun.svg"), url("/bg.svg"), linear-gradient(180deg, #fdf6ea 0%, #f7ecdb 100%);
     background-size: 280px auto, cover, auto;
     background-position: top -40px right -50px, center bottom -80px, center;
     background-repeat: no-repeat, no-repeat, no-repeat;
@@ -39,7 +41,15 @@
   }
   .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: 0.01em;
+    line-height: 0.98;
+  }
+  /* Etichette sportive: condensato + maiuscolo spaziato */
+  .eyebrow {
+    font-family: var(--font-display);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-weight: 600;
   }
 }
 

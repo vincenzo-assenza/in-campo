@@ -25,6 +25,9 @@ create table settings (
   id             smallint primary key default 1,
   weekdays       int[] not null default '{2,4,6}', -- 0=Dom..6=Sab → mar/gio/sab
   organizer_name text, -- nome dell'organizzatore (badge 👑)
+  venue_name     text, -- sede: nome (gestita dall'organizzatore)
+  venue_address  text, -- sede: indirizzo
+  venue_maps_url text, -- sede: link Google Maps (opzionale, altrimenti generato)
   constraint settings_singleton check (id = 1)
 );
 insert into settings (id) values (1) on conflict (id) do nothing;

@@ -8,6 +8,7 @@ import {
   scoreRepeats,
   recordPairs,
   makeTeamsAvoidingRepeats,
+  playerStandings,
 } from './tournament.js';
 
 const identity = (a) => [...a]; // shuffle deterministico per i test
@@ -127,5 +128,24 @@ describe('anti-ripetizione compagni', () => {
     // Secondo turno: con 8 giocatori e 2 campi una formazione senza ripetizioni esiste.
     const t2 = makeTeamsAvoidingRepeats(players, 2, history, 500);
     expect(scoreRepeats(t2, history)).toBe(0);
+  });
+});
+
+describe('playerStandings', () => {
+  const partite = [
+    {
+      round1: [{ court: 0, winner: ['A', 'B'], loser: ['C', 'D'], scoreWinner: 21, scoreLoser: 10 }],
+      round2: [{ court: 0, winner: ['A', 'C'], loser: ['B', 'D'], scoreWinner: 21, scoreLoser: 18 }],
+    },
+  ];
+  it('aggrega per giocatore e ordina per vittorie (punti = turni vinti)', () => {
+    const s = playerStandings(partite);
+    expect(s[0].player).toBe('A'); // vince entrambi
+    expect(s[0].wins).toBe(2);
+    expect(s[0].played).toBe(2);
+    const d = Object.fromEntries(s.map((p) => [p.player, p]));
+    expect(d.D.wins).toBe(0);
+    expect(d.D.losses).toBe(2);
+    expect('diff' in d.A).toBe(false); // niente differenza punti per il singolo
   });
 });

@@ -6,12 +6,23 @@ export const DEFAULT_COURTS = 3;
 export const MAX_SCORE = 21; // set a 21 punti
 export const ADMIN_TOKEN = import.meta.env.VITE_ADMIN_TOKEN;
 
-// Sede di gioco (fissa).
-export const VENUE = {
+// Sede di gioco di default — l'organizzatore può modificarla (salvata in settings).
+export const DEFAULT_VENUE = {
   name: 'Sporting Club Mestre — La Favorita',
   address: 'Via Terraglietto 21/M, Mestre',
   mapsUrl: 'https://maps.google.com/?q=Sporting+Club+Mestre+Via+Terraglietto+21%2FM+Mestre',
 };
+
+// Costruisce la sede da una riga settings, con fallback ai default.
+export const venueFrom = (st) => ({
+  name: st?.venue_name || DEFAULT_VENUE.name,
+  address: st?.venue_address || DEFAULT_VENUE.address,
+  mapsUrl:
+    st?.venue_maps_url ||
+    (st?.venue_address
+      ? `https://maps.google.com/?q=${encodeURIComponent(`${st.venue_name || ''} ${st.venue_address}`)}`
+      : DEFAULT_VENUE.mapsUrl),
+});
 
 // Accesso organizzatore: PIN confrontato lato client, sessione in localStorage.
 // ponytail: barriera "tra amici" (il PIN è nel bundle); sicurezza vera = Supabase Auth.
